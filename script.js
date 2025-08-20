@@ -150,18 +150,30 @@ async function handleFormSubmit(e) {
         }
 
         const resultData = await response.json();
+        console.log('GAS Response:', resultData); // デバッグ用
 
         if (resultData.status === 'success') {
             downloadLink.href = resultData.pdfUrl;
             loading.classList.add('hidden');
             result.classList.remove('hidden');
         } else {
-            throw new Error(resultData.message || 'PDFの生成に失敗しました。');
+            // GASから返されたエラー情報を詳細に表示
+            const errorMessage = resultData.message || resultData.error || 'PDFの生成に失敗しました。';
+            console.error('GAS Error:', resultData);
+            throw new Error(errorMessage);
         }
     } catch (err) {
         console.error('Error:', err);
         loading.classList.add('hidden');
         error.classList.remove('hidden');
+        
+        // エラーの詳細をコンソールに出力（デバッグ用）
+        if (err.message) {
+            console.error('Error message:', err.message);
+        }
+        if (err.stack) {
+            console.error('Error stack:', err.stack);
+        }
     }
 }
 
