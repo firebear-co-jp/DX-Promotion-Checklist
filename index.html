@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3分でわかる「デジタル化推進度チェックシート」</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* スピナーのアニメーション */
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @-webkit-keyframes spinner {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto max-w-3xl p-4 sm:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">会社のIT健康診断！</h1>
+            <p class="text-lg sm:text-xl text-gray-600 mt-2">3分でわかる「デジタル化推進度チェックシート」</p>
+        </header>
+
+        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+            <div id="introduction">
+                <p class="mb-4 text-gray-700">
+                    「ウチはITとかDXとか、よくわからないから…」<br>
+                    そう感じていませんか？気づかぬうちに「非効率な業務」や「見えないコスト」が会社の成長の足かせになっているかもしれません。
+                </p>
+                <p class="mb-6 text-gray-700">
+                    簡単な20の質問に答えるだけで、あなたの会社のIT課題がどこに潜んでいるのかを客観的に「見える化」します。
+                </p>
+                <button id="startBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-300 text-lg">
+                    診断をはじめる
+                </button>
+            </div>
+
+            <form id="checkSheetForm" class="hidden space-y-8">
+                <!-- 設問はここにJSで動的に生成されます -->
+                <div id="questionsContainer" class="space-y-8"></div>
+                <button type="submit" id="submitBtn" class="w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-300 text-lg">
+                    診断結果を見る
+                </button>
+            </form>
+
+            <!-- ローディング表示 -->
+            <div id="loading" class="hidden text-center py-12">
+                <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-24 w-24 mx-auto"></div>
+                <p class="mt-6 text-lg font-semibold text-gray-700">AIがあなたの会社の状況を分析中...</p>
+                <p class="text-gray-500">最適なアドバイスを生成しています。1分ほどかかる場合があります。</p>
+            </div>
+            
+            <!-- 結果表示 -->
+            <div id="result" class="hidden text-center py-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">診断レポートが完成しました！</h2>
+                <p class="text-gray-700 mb-6">以下のボタンから、あなたの会社のためだけに作成された詳細な分析とアドバイスをご確認ください。</p>
+                <a id="downloadLink" href="#" target="_blank" class="inline-block bg-blue-600 text-white font-bold py-4 px-8 rounded-lg hover:bg-blue-700 transition duration-300 text-xl shadow-md">
+                    パーソナル診断レポートをダウンロード
+                </a>
+            </div>
+             <!-- エラー表示 -->
+            <div id="error" class="hidden text-center py-8">
+                <h2 class="text-2xl font-bold text-red-600 mb-4">エラーが発生しました</h2>
+                <p class="text-gray-700 mb-6">診断レポートの作成に失敗しました。時間をおいて再度お試しください。</p>
+                <button id="retryBtn" class="w-full bg-gray-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-600 transition duration-300 text-lg">
+                    もう一度試す
+                </button>
+            </div>
+        </div>
+        <footer class="text-center mt-8 text-sm text-gray-500">
+            <p>監修：ITコンサルタント 佐瀬 〇〇</p>
+        </footer>
+    </div>
+
+    <script>
+        const questions = [
+            { category: 'コミュニケーション・情報共有', text: '社外や自宅からだと、社内にあるはずの必要なファイルにアクセスできない。' },
+            { category: 'コミュニケーション・情報共有', text: '社内の主要な連絡手段がメールや電話で、急ぎの要件が伝わりにくいことがある。' },
+            { category: 'コミュニケーション・情報共有', text: '会議のたびに大量の紙資料を印刷しており、ペーパーレス化が進んでいない。' },
+            { category: 'コミュニケーション・情報共有', text: '「あの件、どうなった？」と担当者に聞かないと、仕事の進捗がわからない。' },
+            { category: 'コミュニケーション・情報共有', text: '拠点間や部署間の情報共有がうまくいかず、何度も同じ説明をしている。' },
+            { category: '業務プロセス・効率化', text: '見積書や稟議書など、いまだに「紙とハンコ」でのやり取りが必須となっている。' },
+            { category: '業務プロセス・効率化', text: 'Excelへのデータ入力や、システム間の情報転記といった単純作業に時間を取られている。' },
+            { category: '業務プロセス・効率化', text: '顧客情報や過去の取引履歴が、個々の営業担当者のExcelや手帳で管理されている。' },
+            { category: '業務プロセス・効率化', text: '過去の資料やデータを探し出すのに、いつも5分以上かかっている。' },
+            { category: '業務プロセス・効率化', text: '会社の売上や経費の状況を、複数の資料をかき集めないと把握できない。' },
+            { category: 'セキュリティ・情報管理', text: '社員の私物のパソコンやスマホを、業務で使うことを黙認してしまっている。' },
+            { category: 'セキュリティ・情報管理', text: '退職した社員のメールアドレスやアカウントが、そのまま放置されている可能性がある。' },
+            { category: 'セキュリティ・情報管理', text: 'ウイルス対策ソフトは入れているが、それ以外のセキュリティ対策は特にしていない。' },
+            { category: 'セキュリティ・情報管理', text: '重要なデータのバックアップを誰がいつ取っているか、明確なルールがない。' },
+            { category: 'セキュリティ・情報管理', text: '社員がカフェの無料Wi-Fiなどを使い、重要なファイルをやり取りしている。' },
+            { category: '経営・データ活用', text: '重要な経営判断を、社長や役員の「経験と勘」に頼ることがほとんどだ。' },
+            { category: '経営・データ活用', text: 'Webサイトからの問い合わせや顧客データを、有効に活用できているとは言えない。' },
+            { category: '経営・データ活用', text: 'ITの導入を「コスト（費用）」と捉えており、「投資」とは考えにくい。' },
+            { category: '経営・データ活用', text: '社内にITに詳しい人材がおらず、パソコンのトラブルが起きると業務が止まる。' },
+            { category: '経営・データ活用', text: '新しいツールを導入しようとすると、社員から「面倒だ」という反対の声が上がる。' }
+        ];
+
+        const startBtn = document.getElementById('startBtn');
+        const introduction = document.getElementById('introduction');
+        const checkSheetForm = document.getElementById('checkSheetForm');
+        const questionsContainer = document.getElementById('questionsContainer');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+        const downloadLink = document.getElementById('downloadLink');
+        const retryBtn = document.getElementById('retryBtn');
+
+        // 設問を動的に生成
+        function renderQuestions() {
+            let currentCategory = '';
+            questions.forEach((q, index) => {
+                if (q.category !== currentCategory) {
+                    currentCategory = q.category;
+                    const categoryTitle = document.createElement('h3');
+                    categoryTitle.className = 'text-xl font-bold text-gray-800 border-b-2 border-blue-500 pb-2 mb-4';
+                    categoryTitle.textContent = `【${currentCategory}】`;
+                    questionsContainer.appendChild(categoryTitle);
+                }
+
+                const questionBlock = document.createElement('div');
+                questionBlock.className = 'p-4 border border-gray-200 rounded-lg';
+                
+                const questionText = document.createElement('p');
+                questionText.className = 'font-medium text-gray-800 mb-3';
+                questionText.textContent = `Q${index + 1}. ${q.text}`;
+                
+                const radioContainer = document.createElement('div');
+                radioContainer.className = 'flex items-center space-x-6';
+                
+                const yesLabel = document.createElement('label');
+                yesLabel.className = 'flex items-center cursor-pointer';
+                const yesInput = document.createElement('input');
+                yesInput.type = 'radio';
+                yesInput.name = `q${index}`;
+                yesInput.value = 'yes';
+                yesInput.required = true;
+                yesInput.className = 'h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300';
+                yesLabel.appendChild(yesInput);
+                yesLabel.append(' はい');
+
+                const noLabel = document.createElement('label');
+                noLabel.className = 'flex items-center cursor-pointer';
+                const noInput = document.createElement('input');
+                noInput.type = 'radio';
+                noInput.name = `q${index}`;
+                noInput.value = 'no';
+                noInput.required = true;
+                noInput.className = 'h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300';
+                noLabel.appendChild(noInput);
+                noLabel.append(' いいえ');
+                
+                radioContainer.appendChild(yesLabel);
+                radioContainer.appendChild(noLabel);
+                questionBlock.appendChild(questionText);
+                questionBlock.appendChild(radioContainer);
+                questionsContainer.appendChild(questionBlock);
+            });
+        }
+
+        startBtn.addEventListener('click', () => {
+            introduction.classList.add('hidden');
+            checkSheetForm.classList.remove('hidden');
+            renderQuestions();
+        });
+
+        checkSheetForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // 全ての質問に回答したかチェック
+            const formData = new FormData(checkSheetForm);
+            const answers = [];
+            let allAnswered = true;
+            for (let i = 0; i < questions.length; i++) {
+                const answer = formData.get(`q${i}`);
+                if (!answer) {
+                    allAnswered = false;
+                    break;
+                }
+                answers.push(answer);
+            }
+
+            if (!allAnswered) {
+                alert('すべての質問に回答してください。');
+                return;
+            }
+
+            checkSheetForm.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            // ここにGASのウェブアプリURLを設定
+            const GAS_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ answers: answers }),
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8', // GASでPOSTを受けるため
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const resultData = await response.json();
+
+                if (resultData.status === 'success') {
+                    downloadLink.href = resultData.pdfUrl;
+                    loading.classList.add('hidden');
+                    result.classList.remove('hidden');
+                } else {
+                    throw new Error(resultData.message || 'PDFの生成に失敗しました。');
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                loading.classList.add('hidden');
+                error.classList.remove('hidden');
+            }
+        });
+        
+        retryBtn.addEventListener('click', () => {
+            window.location.reload();
+        });
+
+    </script>
+</body>
+</html>
