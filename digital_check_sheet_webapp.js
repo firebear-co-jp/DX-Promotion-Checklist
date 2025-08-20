@@ -70,7 +70,7 @@ function calculateScores(answers) {
   };
 
   answers.forEach((answer, index) => {
-    const score = (answer === 'no') ? 1 : 0;
+    const score = (answer === 'yes') ? 1 : 0; // 「はい」=問題あり=1点、「いいえ」=問題なし=0点
     if (index < 5) categories['コミュニケーション・情報共有'].score += score;
     else if (index < 10) categories['業務プロセス・効率化'].score += score;
     else if (index < 15) categories['セキュリティ・情報管理'].score += score;
@@ -152,13 +152,13 @@ function generateDefaultComment(scores) {
   else if (totalScore >= 5) resultType = '【青信号】あと一歩！デジタル化優等生タイプ';
   else resultType = '【素晴らしい！】DX推進リーダータイプ';
 
-  // 最も点数が低いカテゴリを特定
-  let lowestCategory = '';
-  let lowestScore = 5;
+  // 最も点数が高いカテゴリ（問題が多い）を特定
+  let highestCategory = '';
+  let highestScore = 0;
   Object.keys(categories).forEach(key => {
-    if (categories[key].score < lowestScore) {
-      lowestScore = categories[key].score;
-      lowestCategory = key;
+    if (categories[key].score > highestScore) {
+      highestScore = categories[key].score;
+      highestCategory = key;
     }
   });
 
@@ -168,7 +168,7 @@ function generateDefaultComment(scores) {
 あなたの会社は「${resultType}」です。総合スコアは${totalScore}/20点で、${totalScore >= 10 ? '改善の余地が大きい' : totalScore >= 5 ? '部分的に改善が必要' : '良好な状態'}です。
 
 ## 最大の課題
-最も改善が必要な分野は「${lowestCategory}」です。この分野では以下のような問題が起きている可能性があります：
+最も改善が必要な分野は「${highestCategory}」です。この分野では以下のような問題が起きている可能性があります：
 
 * 業務効率の低下
 * 情報共有の不備
