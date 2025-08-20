@@ -1,8 +1,9 @@
 // 【重要】事前に以下の設定を行ってください
 // 1. このスクリプトが紐づいているスプレッドシートのIDを以下に設定
 const SPREADSHEET_ID = '1U73wJb1vuip1NYav4EtwwDbwOV05tO8tRb6IYMZc6VQ'; 
-// 2. Google AI Studio (https://aistudio.google.com/) で取得したAPIキーを設定
-const GEMINI_API_KEY = 'AIzaSyBV528y8bnlFCkn9KwqSpLKL4ua0Ov8dCc';
+// 2. GASのプロパティサービスでAPIキーを設定してください
+// スクリプトエディタ → プロジェクトの設定 → スクリプトプロパティ → GEMINI_API_KEY を追加
+const GEMINI_API_KEY = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
 
 // スプレッドシートのシート名
 const SHEET_NAME = '回答ログ';
