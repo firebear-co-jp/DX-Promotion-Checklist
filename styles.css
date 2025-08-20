@@ -3,21 +3,73 @@ body {
     font-family: 'Inter', sans-serif;
 }
 
-/* スピナーのアニメーション */
+/* 分析中のアニメーション */
 .loader {
     border-top-color: #3498db;
-    -webkit-animation: spinner 1.5s linear infinite;
-    animation: spinner 1.5s linear infinite;
+    border-right-color: #3498db;
+    border-bottom-color: #3498db;
+    -webkit-animation: spinner 1s linear infinite;
+    animation: spinner 1s linear infinite;
 }
 
 @-webkit-keyframes spinner {
-    0% { -webkit-transform: rotate(0deg); }
-    100% { -webkit-transform: rotate(360deg); }
+    0% { 
+        -webkit-transform: rotate(0deg); 
+        border-top-color: #3498db;
+        border-right-color: #3498db;
+        border-bottom-color: #3498db;
+    }
+    25% { 
+        border-top-color: #e74c3c;
+        border-right-color: #3498db;
+        border-bottom-color: #3498db;
+    }
+    50% { 
+        border-top-color: #e74c3c;
+        border-right-color: #f39c12;
+        border-bottom-color: #3498db;
+    }
+    75% { 
+        border-top-color: #e74c3c;
+        border-right-color: #f39c12;
+        border-bottom-color: #27ae60;
+    }
+    100% { 
+        -webkit-transform: rotate(360deg); 
+        border-top-color: #3498db;
+        border-right-color: #3498db;
+        border-bottom-color: #3498db;
+    }
 }
 
 @keyframes spinner {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% { 
+        transform: rotate(0deg); 
+        border-top-color: #3498db;
+        border-right-color: #3498db;
+        border-bottom-color: #3498db;
+    }
+    25% { 
+        border-top-color: #e74c3c;
+        border-right-color: #3498db;
+        border-bottom-color: #3498db;
+    }
+    50% { 
+        border-top-color: #e74c3c;
+        border-right-color: #f39c12;
+        border-bottom-color: #3498db;
+    }
+    75% { 
+        border-top-color: #e74c3c;
+        border-right-color: #f39c12;
+        border-bottom-color: #27ae60;
+    }
+    100% { 
+        transform: rotate(360deg); 
+        border-top-color: #3498db;
+        border-right-color: #3498db;
+        border-bottom-color: #3498db;
+    }
 }
 
 /* プログレスバーの微調整（iOS等で角が潰れないように） */
