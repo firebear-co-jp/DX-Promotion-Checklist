@@ -245,43 +245,50 @@ function createPdfReport(scores, geminiComment) {
     body.appendParagraph('\n');
 
     body.appendParagraph('カテゴリ別スコア').setAttributes(h2Style);
-    const chartData = Object.keys(categories).map(key => categories[key].score).join(',');
-    const chartLabels = Object.keys(categories).map(key => key.replace(/[・]/g, '')).join('|');
-    const chartUrl = `https://image-charts.com/chart?cht=r&chd=t:${chartData}&chds=0,5&chs=400x400&chxt=x&chxl=0:|${chartLabels}&chco=3092DE&chls=2&chm=B,3092DE,0,0,0&chf=bg,s,FFFFFF&chdl=Score`;
     
-    try {
-        Logger.log("Attempting to fetch chart from: " + chartUrl);
-        const chartBlob = UrlFetchApp.fetch(chartUrl);
-        Logger.log("Chart fetch response code: " + chartBlob.getResponseCode());
+    // 表形式でスコアを表示（レーダーチャートの代わり）
+    const table = body.appendTable();
+    
+    // ヘッダー行
+    const headerRow = table.appendTableRow();
+    headerRow.appendTableCell('カテゴリ').setAttributes({[DocumentApp.Attribute.BOLD]: true, [DocumentApp.Attribute.FONT_SIZE]: 12});
+    headerRow.appendTableCell('スコア').setAttributes({[DocumentApp.Attribute.BOLD]: true, [DocumentApp.Attribute.FONT_SIZE]: 12});
+    headerRow.appendTableCell('評価').setAttributes({[DocumentApp.Attribute.BOLD]: true, [DocumentApp.Attribute.FONT_SIZE]: 12});
+    headerRow.appendTableCell('詳細').setAttributes({[DocumentApp.Attribute.BOLD]: true, [DocumentApp.Attribute.FONT_SIZE]: 12});
+    
+    // データ行
+    Object.keys(categories).forEach(key => {
+        const row = table.appendTableRow();
+        row.appendTableCell(key).setAttributes({[DocumentApp.Attribute.FONT_SIZE]: 11});
+        row.appendTableCell(`${categories[key].score} / 5`).setAttributes({[DocumentApp.Attribute.FONT_SIZE]: 11});
         
-        if (chartBlob.getResponseCode() === 200) {
-            const imageBlob = chartBlob.getBlob();
-            body.appendImage(imageBlob).setWidth(350).setHeight(350).getParent().asParagraph().setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-            Logger.log("Chart image added successfully");
+        // 評価と詳細
+        let evaluation, details;
+        if (categories[key].score >= 4) {
+            evaluation = '要改善';
+            details = '緊急の対応が必要です';
+        } else if (categories[key].score >= 2) {
+            evaluation = '注意';
+            details = '改善の余地があります';
         } else {
-            throw new Error("Chart API returned status: " + chartBlob.getResponseCode());
+            evaluation = '良好';
+            details = '良好な状態です';
         }
-    } catch(e) {
-        Logger.log("Chart API Error: " + e.toString());
-        body.appendParagraph('チャートの生成に失敗しました。スコアを以下に記載します。').setAttributes(normalStyle);
         
-        // 表形式でスコアを表示
-        const table = body.appendTable();
-        const headerRow = table.appendTableRow();
-        headerRow.appendTableCell('カテゴリ').setAttributes({[DocumentApp.Attribute.BOLD]: true});
-        headerRow.appendTableCell('スコア').setAttributes({[DocumentApp.Attribute.BOLD]: true});
-        headerRow.appendTableCell('評価').setAttributes({[DocumentApp.Attribute.BOLD]: true});
-        
-        Object.keys(categories).forEach(key => {
-            const row = table.appendTableRow();
-            row.appendTableCell(key);
-            row.appendTableCell(`${categories[key].score} / 5`);
-            const evaluation = categories[key].score >= 4 ? '要改善' : 
-                              categories[key].score >= 2 ? '注意' : '良好';
-            row.appendTableCell(evaluation);
-        });
-        body.appendParagraph('\n');
-    }
+        row.appendTableCell(evaluation).setAttributes({[DocumentApp.Attribute.FONT_SIZE]: 11});
+        row.appendTableCell(details).setAttributes({[DocumentApp.Attribute.FONT_SIZE]: 11});
+    });
+    
+    // 表の後に空行を追加
+    body.appendParagraph('\n');
+    
+    // 総合評価の追加
+    body.appendParagraph('総合評価').setAttributes(h2Style);
+    const totalEvaluation = totalScore >= 15 ? '緊急対応が必要' : 
+                           totalScore >= 10 ? '改善が必要' : 
+                           totalScore >= 5 ? '部分的改善' : '良好';
+    body.appendParagraph(`総合スコア ${totalScore}/20点: ${totalEvaluation}`).setAttributes(normalStyle);
+    body.appendParagraph('\n');
     
     body.appendParagraph('ITコンサルタントによるAI分析コメント').setAttributes(h2Style);
     geminiComment.split('\n').forEach(line => {
