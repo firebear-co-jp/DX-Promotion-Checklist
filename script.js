@@ -33,6 +33,9 @@ const result = document.getElementById('result');
 const error = document.getElementById('error');
 const downloadLink = document.getElementById('downloadLink');
 const retryBtn = document.getElementById('retryBtn');
+const progressSection = document.getElementById('progressSection');
+const progressText = document.getElementById('progressText');
+const progressBar = document.getElementById('progressBar');
 
 /**
  * 設問を動的に生成する関数
@@ -85,6 +88,10 @@ function renderQuestions() {
         questionBlock.appendChild(questionText);
         questionBlock.appendChild(radioContainer);
         questionsContainer.appendChild(questionBlock);
+
+        // 進捗更新のためのイベント
+        yesInput.addEventListener('change', updateProgress);
+        noInput.addEventListener('change', updateProgress);
     });
 }
 
@@ -160,7 +167,20 @@ function handleRetry() {
 function startDiagnosis() {
     introduction.classList.add('hidden');
     checkSheetForm.classList.remove('hidden');
+    progressSection.classList.remove('hidden');
     renderQuestions();
+    updateProgress();
+}
+
+/**
+ * 進捗の更新
+ */
+function updateProgress() {
+    const answeredCount = document.querySelectorAll('#questionsContainer input[type="radio"]:checked').length;
+    const total = questions.length;
+    const percentage = Math.round((answeredCount / total) * 100);
+    progressText.textContent = `${answeredCount} / ${total}`;
+    progressBar.style.width = `${percentage}%`;
 }
 
 // イベントリスナーの設定

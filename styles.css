@@ -19,3 +19,9 @@ body {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* プログレスバーの微調整（iOS等で角が潰れないように） */
+#progressBar {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+}
