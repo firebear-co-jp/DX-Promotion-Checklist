@@ -13,23 +13,42 @@ const SHEET_NAME = '回答ログ';
  */
 function doPost(e) {
   try {
+    Logger.log('doPost function started');
     const requestData = JSON.parse(e.postData.contents);
     const answers = requestData.answers;
+    Logger.log('Received answers: ' + JSON.stringify(answers));
 
+    // 1. 回答をスプレッドシートに記録
+    Logger.log('Step 1: Logging answers to sheet');
     logAnswersToSheet(answers);
-    const scores = calculateScores(answers);
-    const geminiComment = generateCommentWithGemini(scores);
-    const pdfUrl = createPdfReport(scores, geminiComment);
     
+    // 2. スコアを計算
+    Logger.log('Step 2: Calculating scores');
+    const scores = calculateScores(answers);
+    Logger.log('Scores calculated: ' + JSON.stringify(scores));
+    
+    // 3. Gemini APIで診断コメントを生成
+    Logger.log('Step 3: Generating comment');
+    const geminiComment = generateCommentWithGemini(scores);
+    Logger.log('Comment generated successfully');
+    
+    // 4. PDFレポートを生成
+    Logger.log('Step 4: Creating PDF report');
+    const pdfUrl = createPdfReport(scores, geminiComment);
+    Logger.log('PDF created: ' + pdfUrl);
+    
+    // 5. 成功レスポンスを返す
     const response = { status: 'success', pdfUrl: pdfUrl };
+    Logger.log('Returning success response');
     return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
-    Logger.log('Error details: ' + JSON.stringify(error));
+    Logger.log('Error in doPost: ' + error.toString());
+    Logger.log('Error stack: ' + error.stack);
     // エラーの詳細をJSON形式でフロントエンドに返す
     const errorResponse = {
       status: 'error',
-      message: 'An error occurred in the script.',
+      message: error.toString(),
       details: {
         message: error.message,
         fileName: error.fileName,
@@ -46,16 +65,30 @@ function doPost(e) {
  */
 function logAnswersToSheet(answers) {
   try {
+    Logger.log("Attempting to log answers to sheet...");
+    Logger.log("Spreadsheet ID: " + SPREADSHEET_ID);
+    Logger.log("Answers: " + JSON.stringify(answers));
+    
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    Logger.log("Spreadsheet opened successfully");
+    
     let sheet = ss.getSheetByName(SHEET_NAME);
     if (!sheet) {
+      Logger.log("Sheet not found, creating new sheet: " + SHEET_NAME);
       sheet = ss.insertSheet(SHEET_NAME);
       const headers = ['タイムスタンプ', ...Array.from({ length: 20 }, (_, i) => `Q${i + 1}`)];
       sheet.appendRow(headers);
+      Logger.log("Headers added: " + JSON.stringify(headers));
     }
-    sheet.appendRow([new Date(), ...answers]);
+    
+    const rowData = [new Date(), ...answers];
+    sheet.appendRow(rowData);
+    Logger.log("Row appended successfully: " + JSON.stringify(rowData));
+    
   } catch(e) {
     Logger.log("Failed to log answers to sheet: " + e.toString());
+    Logger.log("Error details: " + JSON.stringify(e));
+    throw e; // エラーを再スローして上位で処理
   }
 }
 
@@ -213,8 +246,8 @@ function createPdfReport(scores, geminiComment) {
 
     body.appendParagraph('カテゴリ別スコア').setAttributes(h2Style);
     const chartData = Object.keys(categories).map(key => categories[key].score).join(',');
-    const chartLabels = Object.keys(categories).join('|');
-    const chartUrl = `https://image-charts.com/chart?cht=r&chd=t:${chartData},5&chds=0,5&chs=400x400&chxt=x&chxl=0:|${chartLabels}&chco=3092DE&chls=2&chm=B,3092DE,0,0,0`;
+    const chartLabels = Object.keys(categories).map(key => key.replace(/[・]/g, '')).join('|');
+    const chartUrl = `https://image-charts.com/chart?cht=r&chd=t:${chartData}&chds=0,5&chs=400x400&chxt=x&chxl=0:|${chartLabels}&chco=3092DE&chls=2&chm=B,3092DE,0,0,0&chf=bg,s,FFFFFF`;
     
     try {
         const chartBlob = UrlFetchApp.fetch(chartUrl).getBlob();
