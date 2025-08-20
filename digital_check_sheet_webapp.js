@@ -196,12 +196,12 @@ function generateDefaultComment(scores) {
     }
   });
 
-  return `# 診断結果の解説
+  return `診断結果の解説
 
-## 総合診断タイプについて
+総合診断タイプについて
 あなたの会社は「${resultType}」です。総合スコアは${totalScore}/20点で、${totalScore >= 10 ? '改善の余地が大きい' : totalScore >= 5 ? '部分的に改善が必要' : '良好な状態'}です。
 
-## 最大の課題
+最大の課題
 最も改善が必要な分野は「${highestCategory}」です。この分野では以下のような問題が起きている可能性があります：
 
 * 業務効率の低下
@@ -209,7 +209,7 @@ function generateDefaultComment(scores) {
 * セキュリティリスク
 * データ活用の不足
 
-## 最初の一歩として
+最初の一歩として
 1. 現状の業務フローを見直す
 2. 必要なツールの導入を検討する
 3. 社員への研修を実施する
@@ -291,10 +291,34 @@ function createPdfReport(scores, geminiComment) {
     body.appendParagraph('\n');
     
     body.appendParagraph('ITコンサルタントによるAI分析コメント').setAttributes(h2Style);
+    
+    // Markdown記法を適切なGoogle Docs形式に変換
     geminiComment.split('\n').forEach(line => {
-        if (line.startsWith('# ')) body.appendParagraph(line.substring(2)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
-        else if (line.startsWith('* ') || line.startsWith('- ')) body.appendListItem(line.substring(2)).setGlyphType(DocumentApp.GlyphType.BULLET);
-        else body.appendParagraph(line).setAttributes(normalStyle);
+        const trimmedLine = line.trim();
+        
+        if (trimmedLine.startsWith('## ')) {
+            // 見出し2
+            body.appendParagraph(trimmedLine.substring(3)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
+        } else if (trimmedLine.startsWith('### ')) {
+            // 見出し3
+            body.appendParagraph(trimmedLine.substring(4)).setHeading(DocumentApp.ParagraphHeading.HEADING3);
+        } else if (trimmedLine.startsWith('# ')) {
+            // 見出し1
+            body.appendParagraph(trimmedLine.substring(2)).setHeading(DocumentApp.ParagraphHeading.HEADING1);
+        } else if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
+            // 箇条書き
+            body.appendListItem(trimmedLine.substring(2)).setGlyphType(DocumentApp.GlyphType.BULLET);
+        } else if (trimmedLine.match(/^\d+\.\s/)) {
+            // 番号付きリスト
+            const listText = trimmedLine.replace(/^\d+\.\s/, '');
+            body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.NUMBER);
+        } else if (trimmedLine === '') {
+            // 空行
+            body.appendParagraph('');
+        } else {
+            // 通常のテキスト
+            body.appendParagraph(trimmedLine).setAttributes(normalStyle);
+        }
     });
 
     body.appendPageBreak();
