@@ -135,9 +135,10 @@ function generateCommentWithGemini(scores) {
 あなたは優秀な中小企業向けのITコンサルタントです。以下の診断結果データに基づき、具体的で示唆に富むアドバイスを生成してください。
 
 【重要】絶対に守ってください：
-- 個人への呼びかけ（「◯◯社長」「○○様」など）は一切使用しないでください
+- 個人への呼びかけ（「◯◯社長」「○○様」「社長様」「〜様」など）は一切使用しないでください
+- 挨拶や感謝の言葉は一切不要です
+- いきなり診断結果の解説から始めてください
 - 一般的なアドバイスとして記述してください
-- 冒頭の挨拶は不要です
 
 # 診断結果データ
 - 総合診断タイプ: ${resultType}
@@ -329,7 +330,9 @@ function createPdfReport(scores, geminiComment) {
             
             // **太字** を太字に変換
             if (processedLine.includes('**')) {
-                const parts = processedLine.split(/(\*\*.*?\*\*)/g);
+                // 正規表現で**で囲まれた部分を分割
+                const regex = /(\*\*.*?\*\*)/g;
+                const parts = processedLine.split(regex);
                 let paragraph = body.appendParagraph('');
                 
                 parts.forEach(part => {
@@ -340,8 +343,7 @@ function createPdfReport(scores, geminiComment) {
                         textElement.setBold(true);
                     } else if (part.trim() !== '') {
                         // 通常テキスト部分
-                        const textElement = paragraph.appendText(part);
-                        textElement.setAttributes(normalStyle);
+                        paragraph.appendText(part);
                     }
                 });
             } else {
