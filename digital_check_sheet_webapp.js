@@ -133,6 +133,12 @@ function generateCommentWithGemini(scores) {
 
   const prompt = `
 あなたは優秀な中小企業向けのITコンサルタントです。以下の診断結果データに基づき、具体的で示唆に富むアドバイスを生成してください。
+
+【重要】絶対に守ってください：
+- 個人への呼びかけ（「◯◯社長」「○○様」など）は一切使用しないでください
+- 一般的なアドバイスとして記述してください
+- 冒頭の挨拶は不要です
+
 # 診断結果データ
 - 総合診断タイプ: ${resultType}
 - 総合スコア: ${totalScore} / 20点
@@ -141,13 +147,14 @@ function generateCommentWithGemini(scores) {
   - 業務プロセス・効率化: ${categories['業務プロセス・効率化'].score} / 5点
   - セキュリティ・情報管理: ${categories['セキュリティ・情報管理'].score} / 5点
   - 経営・データ活用: ${categories['経営・データ活用'].score} / 5点
+
 # 指示
 1. まず、総合診断タイプと総合スコアについて、その意味合いを解説してください。
 2. 次に、カテゴリ別スコアの中で、最も点数が低いカテゴリを「最大の課題」として特定し、そのカテゴリでどのような問題が起きている可能性が高いかを、具体例を交えて鋭く指摘してください。
 3. 最後に、その最大の課題を解決するための「最初の一歩」として、具体的で実行可能なアクションを2〜3個提案してください。
 4. 全体を通して、専門用語は避け、中小企業の経営者に寄り添うような、丁寧かつ力強いトーンで記述してください。
 5. 出力はMarkdown形式で、見出しや箇条書きを効果的に使用してください。文字数は400〜600字程度にまとめてください。
-6. 個人への呼びかけ（「◯◯社長」など）は避け、一般的なアドバイスとして記述してください。`;
+6. 冒頭の挨拶は一切不要です。いきなり診断結果の解説から始めてください。`;
 
   const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
   const options = {
@@ -333,7 +340,8 @@ function createPdfReport(scores, geminiComment) {
                         textElement.setBold(true);
                     } else if (part.trim() !== '') {
                         // 通常テキスト部分
-                        paragraph.appendText(part);
+                        const textElement = paragraph.appendText(part);
+                        textElement.setAttributes(normalStyle);
                     }
                 });
             } else {
