@@ -1,8 +1,8 @@
 // 【重要】事前に以下の設定を行ってください
 // 1. このスクリプトが紐づいているスプレッドシートのIDを以下に設定
-const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID'; 
+const SPREADSHEET_ID = '1U73wJb1vuip1NYav4EtwwDbwOV05tO8tRb6IYMZc6VQ'; 
 // 2. Google AI Studio (https://aistudio.google.com/) で取得したAPIキーを設定
-const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY';
+const GEMINI_API_KEY = 'AIzaSyBV528y8bnlFCkn9KwqSpLKL4ua0Ov8dCc';
 
 // スプレッドシートのシート名
 const SHEET_NAME = '回答ログ';
