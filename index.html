@@ -33,7 +33,17 @@
                     <div>満足度</div>
                 </div>
             </div>
-
+            
+            <!-- 進捗表示をヘッダーに統合 -->
+            <div id="progressSection" class="hidden mt-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">進捗</span>
+                    <span id="progressText" class="text-sm text-gray-600">0/20</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
         </header>
 
         <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
@@ -51,16 +61,6 @@
             </div>
 
             <form id="checkSheetForm" class="hidden space-y-8">
-                <!-- 進捗表示 -->
-                <div id="progressSection" class="hidden sticky top-24 bg-white z-10 py-2 border-b border-gray-200 shadow-sm -mt-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium text-gray-700">進捗</span>
-                        <span id="progressText" class="text-sm text-gray-600">0 / 20</span>
-                    </div>
-                    <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                        <div id="progressBar" class="h-3 bg-blue-600 rounded-full transition-all duration-300" style="width:0%"></div>
-                    </div>
-                </div>
                 <!-- 設問はここにJSで動的に生成されます -->
                 <div id="questionsContainer" class="space-y-8"></div>
                 <button type="submit" id="submitBtn" class="w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-300 text-lg">
