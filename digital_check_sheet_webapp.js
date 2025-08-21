@@ -334,30 +334,41 @@ function createPdfReport(scores, geminiComment) {
                 const regex = /\*\*(.*?)\*\*/g;
                 let match;
                 let lastIndex = 0;
-                let paragraph = body.appendParagraph('');
+                let currentParagraph = null;
                 
                 while ((match = regex.exec(processedLine)) !== null) {
                     // マッチ前の通常テキストを追加
                     if (match.index > lastIndex) {
                         const normalText = processedLine.substring(lastIndex, match.index);
                         if (normalText.trim() !== '') {
-                            paragraph.appendText(normalText);
+                            if (!currentParagraph) {
+                                currentParagraph = body.appendParagraph(normalText);
+                                currentParagraph.setAttributes(normalStyle);
+                            } else {
+                                currentParagraph.appendText(normalText);
+                            }
                         }
                     }
                     
-                    // 太字部分を追加
+                    // 太字部分を別の段落として追加
                     const boldText = match[1];
-                    const textElement = paragraph.appendText(boldText);
-                    textElement.setBold(true);
+                    const boldParagraph = body.appendParagraph(boldText);
+                    boldParagraph.setAttributes({...normalStyle, [DocumentApp.Attribute.BOLD]: true});
                     
                     lastIndex = match.index + match[0].length;
+                    currentParagraph = null; // 次の部分のためにリセット
                 }
                 
                 // 残りの通常テキストを追加
                 if (lastIndex < processedLine.length) {
                     const remainingText = processedLine.substring(lastIndex);
                     if (remainingText.trim() !== '') {
-                        paragraph.appendText(remainingText);
+                        if (!currentParagraph) {
+                            const remainingParagraph = body.appendParagraph(remainingText);
+                            remainingParagraph.setAttributes(normalStyle);
+                        } else {
+                            currentParagraph.appendText(remainingText);
+                        }
                     }
                 }
             } else {
