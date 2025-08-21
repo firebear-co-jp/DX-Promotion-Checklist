@@ -161,7 +161,7 @@ function generateCommentWithGemini(scores) {
 
 # 指示
 1. まず、総合診断タイプと総合スコアについて、その意味合いを解説してください。
-2. 次に、カテゴリ別スコアの中で、最も点数が高いカテゴリ（問題が多いカテゴリ）を「最大の課題」として特定し、そのカテゴリでどのような問題が起きている可能性が高いかを、具体例を交えて鋭く指摘してください。注意：点数が高いほど問題が多く、改善が必要です。点数が低い（0点や1点）は問題が少ないことを意味します。
+2. 次に、カテゴリ別スコアの中で、最も点数が高いカテゴリ（問題が多いカテゴリ）を「最大の課題」として特定し、そのカテゴリでどのような問題が起きている可能性が高いかを、具体例を交えて鋭く指摘してください。注意：点数が高いほど問題が多く、改善が必要です。点数が低い（0点や1点）は問題が少ないことを意味します。同じ点数のカテゴリがある場合は、優先順位の高いカテゴリを1つだけ選んでください。
 3. 最後に、その最大の課題を解決するための「最初の一歩」として、具体的で実行可能なアクションを2〜3個提案してください。
 4. 全体を通して、専門用語は避け、中小企業の経営者に寄り添うような、丁寧かつ力強いトーンで記述してください。
 5. 出力はMarkdown形式で、見出しや箇条書きを効果的に使用してください。文字数は400〜600字程度にまとめてください。
@@ -209,7 +209,7 @@ function generateDefaultComment(scores) {
   let highestCategory = '';
   let highestScore = 0;
   
-  // カテゴリの優先順位（同じ点数時の優先度）
+  // カテゴリの優先順位（同じ点数時の優先度）- 数字が小さいほど重要
   const categoryPriority = {
     'セキュリティ・情報管理': 1,
     '経営・データ活用': 2,
@@ -217,13 +217,19 @@ function generateDefaultComment(scores) {
     'コミュニケーション・情報共有': 4
   };
   
+  // まず最高点を特定
   Object.keys(categories).forEach(key => {
     if (categories[key].score > highestScore) {
       highestScore = categories[key].score;
-      highestCategory = key;
-    } else if (categories[key].score === highestScore) {
-      // 同じ点数の場合、優先順位の高いカテゴリを選択
-      if (categoryPriority[key] < categoryPriority[highestCategory]) {
+    }
+  });
+  
+  // 最高点のカテゴリの中で、最も優先順位の高いものを選択
+  let bestPriority = 999;
+  Object.keys(categories).forEach(key => {
+    if (categories[key].score === highestScore) {
+      if (categoryPriority[key] < bestPriority) {
+        bestPriority = categoryPriority[key];
         highestCategory = key;
       }
     }
@@ -356,7 +362,7 @@ function createPdfReport(scores, geminiComment) {
                 listText = listText.replace(regex, '$1');
             }
             // 手動で番号を付けて通常の段落として追加
-            const numberedText = `• ${listText}`;
+            const numberedText = `1. ${listText}`;
             body.appendParagraph(numberedText).setAttributes(normalStyle);
         } else if (trimmedLine === '') {
             // 空行
