@@ -340,7 +340,98 @@ function createPdfReport(scores, geminiComment) {
     
     // Markdown記法を適切なGoogle Docs形式に変換
     let numberedListCounter = 1; // 番号付きリストのカウンター
+    let isFirstPage = true;
+    let firstPageContent = [];
+    let secondPageContent = [];
+    
     geminiComment.split('\n').forEach(line => {
+        const trimmedLine = line.trim();
+        
+        // 最大の課題と最初の一歩は2ページ目に移動
+        if (trimmedLine.startsWith('## 最大の課題') || trimmedLine.startsWith('## 最初の一歩')) {
+            isFirstPage = false;
+        }
+        
+        if (isFirstPage) {
+            firstPageContent.push(line);
+        } else {
+            secondPageContent.push(line);
+        }
+    });
+    
+    // 1ページ目の内容を処理
+    firstPageContent.forEach(line => {
+        const trimmedLine = line.trim();
+        
+        if (trimmedLine.startsWith('## ')) {
+            // 見出し2
+            body.appendParagraph(trimmedLine.substring(3)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
+        } else if (trimmedLine.startsWith('### ')) {
+            // 見出し3
+            body.appendParagraph(trimmedLine.substring(4)).setHeading(DocumentApp.ParagraphHeading.HEADING3);
+        } else if (trimmedLine.startsWith('# ')) {
+            // 見出し1
+            body.appendParagraph(trimmedLine.substring(2)).setHeading(DocumentApp.ParagraphHeading.HEADING1);
+        } else if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
+            // 箇条書き - Markdown強調記法を処理
+            let listText = trimmedLine.substring(2);
+            if (listText.includes('**')) {
+                // 箇条書き内の太字処理（記号のみ削除）
+                const regex = /\*\*(.*?)\*\*/g;
+                listText = listText.replace(regex, '$1');
+            }
+            body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.BULLET);
+        } else if (trimmedLine === '') {
+            // 空行
+            body.appendParagraph('');
+        } else {
+            // 通常のテキスト - Markdownの強調記法を処理
+            let processedLine = trimmedLine;
+            
+            // **太字** を太字に変換
+            if (processedLine.includes('**')) {
+                // 正規表現で**で囲まれた部分を検出して置換
+                const regex = /\*\*(.*?)\*\*/g;
+                let match;
+                let lastIndex = 0;
+                let paragraph = body.appendParagraph('');
+                
+                while ((match = regex.exec(processedLine)) !== null) {
+                    // マッチ前の通常テキストを追加
+                    if (match.index > lastIndex) {
+                        const normalText = processedLine.substring(lastIndex, match.index);
+                        if (normalText.trim() !== '') {
+                            paragraph.appendText(normalText);
+                        }
+                    }
+                    
+                    // 太字部分を追加
+                    const boldText = match[1];
+                    const textElement = paragraph.appendText(boldText);
+                    textElement.setBold(true);
+                    
+                    lastIndex = match.index + match[0].length;
+                }
+                
+                // 残りの通常テキストを追加
+                if (lastIndex < processedLine.length) {
+                    const remainingText = processedLine.substring(lastIndex);
+                    if (remainingText.trim() !== '') {
+                        paragraph.appendText(remainingText);
+                    }
+                }
+            } else {
+                // 強調記法がない場合は通常のテキストとして追加
+                body.appendParagraph(processedLine).setAttributes(normalStyle);
+            }
+        }
+    });
+    
+    // 改ページを挿入
+    body.appendPageBreak();
+    
+    // 2ページ目の内容を処理
+    secondPageContent.forEach(line => {
         const trimmedLine = line.trim();
         
         if (trimmedLine.startsWith('## ')) {
@@ -375,16 +466,16 @@ function createPdfReport(scores, geminiComment) {
             const itemName = parts[0];
             const description = parts.slice(1).join('：'); // 複数の「：」がある場合に対応
             
-            // 全角番号付きリストとして追加（段落下げされる）
-            const fullWidthNumber = String(numberedListCounter).replace(/[0-9]/g, function(match) {
-                return String.fromCharCode(match.charCodeAt(0) + 0xFEE0);
-            });
+            // 番号付きリストとして追加（段落下げされる）
             const listItem = body.appendListItem(itemName);
             listItem.setGlyphType(DocumentApp.GlyphType.NUMBER);
             
-            // 説明文がある場合は改行して追加
+            // 説明文がある場合は改行して追加（段落下げ）
             if (description && description.trim() !== '') {
-                body.appendParagraph(description).setAttributes(normalStyle);
+                const descriptionParagraph = body.appendParagraph(description);
+                descriptionParagraph.setAttributes(normalStyle);
+                // 段落下げを適用
+                descriptionParagraph.setIndentFirstLine(36); // 36ポイント（0.5インチ）の段落下げ
             }
             
             numberedListCounter++; // カウンターを増加
@@ -433,8 +524,7 @@ function createPdfReport(scores, geminiComment) {
             }
         }
     });
-
-    body.appendPageBreak();
+    
     body.appendParagraph('次のステップのご案内').setAttributes(h2Style);
     body.appendParagraph('診断で明らかになった課題を解決するため、専門家があなたの会社に合わせた最適な解決策をご提案します。\n\n【Step1：情報収集から始めたい方へ】\n「明日からできる！情報セキュリティ対策 最初の10のステップ」の資料をご用意しています。ご希望の場合はお問い合わせください。\n\n【Step2：具体的に相談したい方へ】\n「IT課題の壁打ち 30分無料オンライン相談会」を毎月3社様限定で実施中です。以下の連絡先までお気軽にご連絡ください。\n連絡先: xxx-xxxx-xxxx / email: info@example.com');
     
