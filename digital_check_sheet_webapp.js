@@ -144,15 +144,16 @@ function generateCommentWithGemini(scores) {
 - 点数が高い（4-5点）= 問題が多い = 改善が必要
 - 点数が低い（0-1点）= 問題が少ない = 良好な状態
 
-【最大の課題選定ロジック】：
-1. まず最高点のカテゴリを特定（点数が高いほど問題が多い）
-2. 最高点のカテゴリが複数ある場合は、以下の優先順位で1つ選択：
+【最大の課題選定ロジック】（絶対に守ってください）：
+1. 必ず最高点のカテゴリを選んでください（点数が高いほど問題が多い）
+2. 最高点のカテゴリが複数ある場合のみ、以下の優先順位で1つ選択：
    - 1位：セキュリティ・情報管理（最重要）
    - 2位：経営・データ活用
    - 3位：業務プロセス・効率化
    - 4位：コミュニケーション・情報共有
-3. 必ず最高点のカテゴリから選ぶ（低い点数は選ばない）
+3. 絶対に低い点数のカテゴリは選ばないでください
 4. スコアが最優先、優先順位は同点時のみ使用
+5. 例：5点のカテゴリがあるのに4点のカテゴリを選んではいけません
 
 # 診断結果データ
 - 総合診断タイプ: ${resultType}
@@ -165,7 +166,7 @@ function generateCommentWithGemini(scores) {
 
 # 指示
 1. まず、総合診断タイプと総合スコアについて、その意味合いを解説してください。
-2. 次に、カテゴリ別スコアの中で、最も点数が高いカテゴリ（問題が多いカテゴリ）を「最大の課題」として特定し、そのカテゴリでどのような問題が起きている可能性が高いかを、具体例を交えて鋭く指摘してください。注意：点数が高いほど問題が多く、改善が必要です。点数が低い（0点や1点）は問題が少ないことを意味します。同じ点数のカテゴリがある場合は、必ず以下の優先順位で1つだけ選んでください：1位「セキュリティ・情報管理」→2位「経営・データ活用」→3位「業務プロセス・効率化」→4位「コミュニケーション・情報共有」。必ず最高点のカテゴリから選んでください。スコアが最優先で、優先順位は同点時のみ使用してください。
+2. 次に、カテゴリ別スコアの中で、最も点数が高いカテゴリ（問題が多いカテゴリ）を「最大の課題」として特定し、そのカテゴリでどのような問題が起きている可能性が高いかを、具体例を交えて鋭く指摘してください。注意：点数が高いほど問題が多く、改善が必要です。点数が低い（0点や1点）は問題が少ないことを意味します。同じ点数のカテゴリがある場合は、必ず以下の優先順位で1つだけ選んでください：1位「セキュリティ・情報管理」→2位「経営・データ活用」→3位「業務プロセス・効率化」→4位「コミュニケーション・情報共有」。必ず最高点のカテゴリから選んでください。スコアが最優先で、優先順位は同点時のみ使用してください。絶対に低い点数のカテゴリを選んではいけません。
 3. 最後に、その最大の課題を解決するための「最初の一歩」として、具体的で実行可能なアクションを2〜3個提案してください。
 4. 全体を通して、専門用語は避け、中小企業の経営者に寄り添うような、丁寧かつ力強いトーンで記述してください。
 5. 出力はMarkdown形式で、見出しや箇条書きを効果的に使用してください。文字数は400〜600字程度にまとめてください。
@@ -440,11 +441,20 @@ function createPdfReport(scores, geminiComment) {
     body.appendPageBreak();
     
     // 2ページ目の内容を処理
+    let isInGreatestChallenge = false;
     secondPageContent.forEach(line => {
         const trimmedLine = line.trim();
         
-        if (trimmedLine.startsWith('## ')) {
-            // 見出し2
+        if (trimmedLine.startsWith('## 最大の課題')) {
+            // 最大の課題の見出し
+            body.appendParagraph(trimmedLine.substring(3)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
+            isInGreatestChallenge = true;
+        } else if (trimmedLine.startsWith('## 最初の一歩')) {
+            // 最初の一歩の見出し
+            body.appendParagraph(trimmedLine.substring(3)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
+            isInGreatestChallenge = false;
+        } else if (trimmedLine.startsWith('## ')) {
+            // その他の見出し2
             body.appendParagraph(trimmedLine.substring(3)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
         } else if (trimmedLine.startsWith('### ')) {
             // 見出し3
@@ -492,41 +502,52 @@ function createPdfReport(scores, geminiComment) {
             // 通常のテキスト - Markdownの強調記法を処理
             let processedLine = trimmedLine;
             
-            // **太字** を太字に変換
-            if (processedLine.includes('**')) {
-                // 正規表現で**で囲まれた部分を検出して置換
+            // 最大の課題セクション内の通常テキストを箇条書きに変換
+            if (isInGreatestChallenge && processedLine.includes('**')) {
+                // 太字部分を箇条書きとして追加
                 const regex = /\*\*(.*?)\*\*/g;
                 let match;
-                let lastIndex = 0;
-                let paragraph = body.appendParagraph('');
-                
                 while ((match = regex.exec(processedLine)) !== null) {
-                    // マッチ前の通常テキストを追加
-                    if (match.index > lastIndex) {
-                        const normalText = processedLine.substring(lastIndex, match.index);
-                        if (normalText.trim() !== '') {
-                            paragraph.appendText(normalText);
-                        }
-                    }
-                    
-                    // 太字部分を追加
                     const boldText = match[1];
-                    const textElement = paragraph.appendText(boldText);
-                    textElement.setBold(true);
-                    
-                    lastIndex = match.index + match[0].length;
-                }
-                
-                // 残りの通常テキストを追加
-                if (lastIndex < processedLine.length) {
-                    const remainingText = processedLine.substring(lastIndex);
-                    if (remainingText.trim() !== '') {
-                        paragraph.appendText(remainingText);
-                    }
+                    body.appendListItem(boldText).setGlyphType(DocumentApp.GlyphType.BULLET);
                 }
             } else {
-                // 強調記法がない場合は通常のテキストとして追加
-                body.appendParagraph(processedLine).setAttributes(normalStyle);
+                // **太字** を太字に変換
+                if (processedLine.includes('**')) {
+                    // 正規表現で**で囲まれた部分を検出して置換
+                    const regex = /\*\*(.*?)\*\*/g;
+                    let match;
+                    let lastIndex = 0;
+                    let paragraph = body.appendParagraph('');
+                    
+                    while ((match = regex.exec(processedLine)) !== null) {
+                        // マッチ前の通常テキストを追加
+                        if (match.index > lastIndex) {
+                            const normalText = processedLine.substring(lastIndex, match.index);
+                            if (normalText.trim() !== '') {
+                                paragraph.appendText(normalText);
+                            }
+                        }
+                        
+                        // 太字部分を追加
+                        const boldText = match[1];
+                        const textElement = paragraph.appendText(boldText);
+                        textElement.setBold(true);
+                        
+                        lastIndex = match.index + match[0].length;
+                    }
+                    
+                    // 残りの通常テキストを追加
+                    if (lastIndex < processedLine.length) {
+                        const remainingText = processedLine.substring(lastIndex);
+                        if (remainingText.trim() !== '') {
+                            paragraph.appendText(remainingText);
+                        }
+                    }
+                } else {
+                    // 強調記法がない場合は通常のテキストとして追加
+                    body.appendParagraph(processedLine).setAttributes(normalStyle);
+                }
             }
         }
     });
