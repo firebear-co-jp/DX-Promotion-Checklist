@@ -133,8 +133,8 @@ async function handleFormSubmit(e) {
     checkSheetForm.classList.add('hidden');
     loading.classList.remove('hidden');
 
-    // ここにGASのウェブアプリURLを設定
-            const GAS_URL = 'https://script.google.com/macros/s/AKfycbwOWMJb88A8KFY3NoccbngvCdK0Y-4ezv7KTlq6kFmazXHqLP-KS8wX80GSLBk0ie_nOw/exec';
+            // ここにGASのウェブアプリURLを設定
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzOf2qZbBAT64UCuTcKShrQFRvp0VxxwIX8cnM7kh1w7Xt6eH1VIkO0jPqj3X3KPSVyWg/exec';
 
     try {
         const response = await fetch(GAS_URL, {
