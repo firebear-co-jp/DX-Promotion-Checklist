@@ -151,7 +151,7 @@ function generateCommentWithGemini(scores) {
 
 # 指示
 1. まず、総合診断タイプと総合スコアについて、その意味合いを解説してください。
-2. 次に、カテゴリ別スコアの中で、最も点数が低いカテゴリを「最大の課題」として特定し、そのカテゴリでどのような問題が起きている可能性が高いかを、具体例を交えて鋭く指摘してください。
+2. 次に、カテゴリ別スコアの中で、最も点数が高いカテゴリを「最大の課題」として特定し、そのカテゴリでどのような問題が起きている可能性が高いかを、具体例を交えて鋭く指摘してください。
 3. 最後に、その最大の課題を解決するための「最初の一歩」として、具体的で実行可能なアクションを2〜3個提案してください。
 4. 全体を通して、専門用語は避け、中小企業の経営者に寄り添うような、丁寧かつ力強いトーンで記述してください。
 5. 出力はMarkdown形式で、見出しや箇条書きを効果的に使用してください。文字数は400〜600字程度にまとめてください。
@@ -321,7 +321,17 @@ function createPdfReport(scores, geminiComment) {
                 // 箇条書き内の太字処理
                 const regex = /\*\*(.*?)\*\*/g;
                 listText = listText.replace(regex, '$1');
-                body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.BULLET);
+                const listItem = body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.BULLET);
+                // 太字部分を後から適用
+                const regex2 = /\*\*(.*?)\*\*/g;
+                let match;
+                while ((match = regex2.exec(trimmedLine.substring(2))) !== null) {
+                    const boldText = match[1];
+                    const textElement = listItem.findText(boldText);
+                    if (textElement) {
+                        textElement.setBold(true);
+                    }
+                }
             } else {
                 body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.BULLET);
             }
@@ -332,7 +342,17 @@ function createPdfReport(scores, geminiComment) {
                 // 番号付きリスト内の太字処理
                 const regex = /\*\*(.*?)\*\*/g;
                 listText = listText.replace(regex, '$1');
-                body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.NUMBER);
+                const listItem = body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.NUMBER);
+                // 太字部分を後から適用
+                const regex2 = /\*\*(.*?)\*\*/g;
+                let match;
+                while ((match = regex2.exec(trimmedLine.replace(/^\d+\.\s/, ''))) !== null) {
+                    const boldText = match[1];
+                    const textElement = listItem.findText(boldText);
+                    if (textElement) {
+                        textElement.setBold(true);
+                    }
+                }
             } else {
                 body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.NUMBER);
             }
