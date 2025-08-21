@@ -332,6 +332,7 @@ function createPdfReport(scores, geminiComment) {
     body.appendParagraph('ITコンサルタントによるAI分析コメント').setAttributes(h2Style);
     
     // Markdown記法を適切なGoogle Docs形式に変換
+    let numberedListCounter = 1; // 番号付きリストのカウンター
     geminiComment.split('\n').forEach(line => {
         const trimmedLine = line.trim();
         
@@ -361,9 +362,10 @@ function createPdfReport(scores, geminiComment) {
                 const regex = /\*\*(.*?)\*\*/g;
                 listText = listText.replace(regex, '$1');
             }
-            // 手動で番号を付けて通常の段落として追加
-            const numberedText = `1. ${listText}`;
+            // 手動で連番を付けて通常の段落として追加
+            const numberedText = `${numberedListCounter}. ${listText}`;
             body.appendParagraph(numberedText).setAttributes(normalStyle);
+            numberedListCounter++; // カウンターを増加
         } else if (trimmedLine === '') {
             // 空行
             body.appendParagraph('');
