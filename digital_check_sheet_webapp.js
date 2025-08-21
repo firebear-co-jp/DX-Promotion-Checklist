@@ -144,6 +144,12 @@ function generateCommentWithGemini(scores) {
 - 点数が高い（4-5点）= 問題が多い = 改善が必要
 - 点数が低い（0-1点）= 問題が少ない = 良好な状態
 
+【カテゴリの優先順位】（同じ点数時の優先度）：
+1. セキュリティ・情報管理（最重要）
+2. 経営・データ活用
+3. 業務プロセス・効率化
+4. コミュニケーション・情報共有
+
 # 診断結果データ
 - 総合診断タイプ: ${resultType}
 - 総合スコア: ${totalScore} / 20点
@@ -202,10 +208,24 @@ function generateDefaultComment(scores) {
   // 最も点数が高いカテゴリ（問題が多い）を特定
   let highestCategory = '';
   let highestScore = 0;
+  
+  // カテゴリの優先順位（同じ点数時の優先度）
+  const categoryPriority = {
+    'セキュリティ・情報管理': 1,
+    '経営・データ活用': 2,
+    '業務プロセス・効率化': 3,
+    'コミュニケーション・情報共有': 4
+  };
+  
   Object.keys(categories).forEach(key => {
     if (categories[key].score > highestScore) {
       highestScore = categories[key].score;
       highestCategory = key;
+    } else if (categories[key].score === highestScore) {
+      // 同じ点数の場合、優先順位の高いカテゴリを選択
+      if (categoryPriority[key] < categoryPriority[highestCategory]) {
+        highestCategory = key;
+      }
     }
   });
 
@@ -336,7 +356,7 @@ function createPdfReport(scores, geminiComment) {
                 listText = listText.replace(regex, '$1');
             }
             // 手動で番号を付けて通常の段落として追加
-            const numberedText = `${listText}`;
+            const numberedText = `• ${listText}`;
             body.appendParagraph(numberedText).setAttributes(normalStyle);
         } else if (trimmedLine === '') {
             // 空行
