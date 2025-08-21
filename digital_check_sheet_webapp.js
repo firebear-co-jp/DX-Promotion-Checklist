@@ -315,12 +315,55 @@ function createPdfReport(scores, geminiComment) {
             // 見出し1
             body.appendParagraph(trimmedLine.substring(2)).setHeading(DocumentApp.ParagraphHeading.HEADING1);
         } else if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
-            // 箇条書き
-            body.appendListItem(trimmedLine.substring(2)).setGlyphType(DocumentApp.GlyphType.BULLET);
+            // 箇条書き - Markdown強調記法を処理
+            let listText = trimmedLine.substring(2);
+            if (listText.includes('**')) {
+                // 箇条書き内の太字処理
+                const regex = /\*\*(.*?)\*\*/g;
+                listText = listText.replace(regex, '$1');
+                const listItem = body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.BULLET);
+                // 太字部分を後から適用
+                const textElements = listItem.getText().split(regex);
+                if (textElements.length > 1) {
+                    // 太字部分を検出して適用
+                    const regex2 = /\*\*(.*?)\*\*/g;
+                    let match;
+                    while ((match = regex2.exec(trimmedLine.substring(2))) !== null) {
+                        const boldText = match[1];
+                        const textElement = listItem.findText(boldText);
+                        if (textElement) {
+                            textElement.setBold(true);
+                        }
+                    }
+                }
+            } else {
+                body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.BULLET);
+            }
         } else if (trimmedLine.match(/^\d+\.\s/)) {
-            // 番号付きリスト
-            const listText = trimmedLine.replace(/^\d+\.\s/, '');
-            body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.NUMBER);
+            // 番号付きリスト - Markdown強調記法を処理
+            let listText = trimmedLine.replace(/^\d+\.\s/, '');
+            if (listText.includes('**')) {
+                // 番号付きリスト内の太字処理
+                const regex = /\*\*(.*?)\*\*/g;
+                listText = listText.replace(regex, '$1');
+                const listItem = body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.NUMBER);
+                // 太字部分を後から適用
+                const textElements = listItem.getText().split(regex);
+                if (textElements.length > 1) {
+                    // 太字部分を検出して適用
+                    const regex2 = /\*\*(.*?)\*\*/g;
+                    let match;
+                    while ((match = regex2.exec(trimmedLine.replace(/^\d+\.\s/, ''))) !== null) {
+                        const boldText = match[1];
+                        const textElement = listItem.findText(boldText);
+                        if (textElement) {
+                            textElement.setBold(true);
+                        }
+                    }
+                }
+            } else {
+                body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.NUMBER);
+            }
         } else if (trimmedLine === '') {
             // 空行
             body.appendParagraph('');
