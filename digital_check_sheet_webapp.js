@@ -330,22 +330,36 @@ function createPdfReport(scores, geminiComment) {
             
             // **太字** を太字に変換
             if (processedLine.includes('**')) {
-                // 正規表現で**で囲まれた部分を分割
-                const regex = /(\*\*.*?\*\*)/g;
-                const parts = processedLine.split(regex);
+                // 正規表現で**で囲まれた部分を検出
+                const regex = /\*\*(.*?)\*\*/g;
+                let match;
+                let lastIndex = 0;
                 let paragraph = body.appendParagraph('');
                 
-                parts.forEach(part => {
-                    if (part.startsWith('**') && part.endsWith('**')) {
-                        // 太字部分
-                        const boldText = part.slice(2, -2);
-                        const textElement = paragraph.appendText(boldText);
-                        textElement.setBold(true);
-                    } else if (part.trim() !== '') {
-                        // 通常テキスト部分
-                        paragraph.appendText(part);
+                while ((match = regex.exec(processedLine)) !== null) {
+                    // マッチ前の通常テキストを追加
+                    if (match.index > lastIndex) {
+                        const normalText = processedLine.substring(lastIndex, match.index);
+                        if (normalText.trim() !== '') {
+                            paragraph.appendText(normalText);
+                        }
                     }
-                });
+                    
+                    // 太字部分を追加
+                    const boldText = match[1];
+                    const textElement = paragraph.appendText(boldText);
+                    textElement.setBold(true);
+                    
+                    lastIndex = match.index + match[0].length;
+                }
+                
+                // 残りの通常テキストを追加
+                if (lastIndex < processedLine.length) {
+                    const remainingText = processedLine.substring(lastIndex);
+                    if (remainingText.trim() !== '') {
+                        paragraph.appendText(remainingText);
+                    }
+                }
             } else {
                 // 強調記法がない場合は通常のテキストとして追加
                 body.appendParagraph(processedLine).setAttributes(normalStyle);
