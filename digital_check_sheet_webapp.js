@@ -171,7 +171,8 @@ function generateCommentWithGemini(scores) {
 4. 全体を通して、専門用語は避け、中小企業の経営者に寄り添うような、丁寧かつ力強いトーンで記述してください。
 5. 出力はMarkdown形式で、見出しや箇条書きを効果的に使用してください。文字数は400〜600字程度にまとめてください。
 6. 冒頭の挨拶は一切不要です。いきなり診断結果の解説から始めてください。
-7. 「最大の課題」と「最初の一歩」は必ず## で始まる見出しとして出力してください。`;
+7. 「最大の課題」と「最初の一歩」は必ず## で始まる見出しとして出力してください。
+8. 「最初の一歩」の番号付きリストは「項目名：説明文」の形式ではなく、「項目名」のみを番号付きリストとして出力し、説明文は別の段落として出力してください。`;
 
   const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
   const options = {
@@ -368,9 +369,9 @@ function createPdfReport(scores, geminiComment) {
                 const regex = /\*\*(.*?)\*\*/g;
                 listText = listText.replace(regex, '$1');
             }
-            // 手動で連番を付けて通常の段落として追加
-            const numberedText = `${numberedListCounter}. ${listText}`;
-            body.appendParagraph(numberedText).setAttributes(normalStyle);
+            // 番号付きリストとして追加（段落下げされる）
+            const listItem = body.appendListItem(listText);
+            listItem.setGlyphType(DocumentApp.GlyphType.NUMBER);
             numberedListCounter++; // カウンターを増加
         } else if (trimmedLine === '') {
             // 空行
