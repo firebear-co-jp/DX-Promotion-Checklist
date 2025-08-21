@@ -170,7 +170,8 @@ function generateCommentWithGemini(scores) {
 3. 最後に、その最大の課題を解決するための「最初の一歩」として、具体的で実行可能なアクションを2〜3個提案してください。
 4. 全体を通して、専門用語は避け、中小企業の経営者に寄り添うような、丁寧かつ力強いトーンで記述してください。
 5. 出力はMarkdown形式で、見出しや箇条書きを効果的に使用してください。文字数は400〜600字程度にまとめてください。
-6. 冒頭の挨拶は一切不要です。いきなり診断結果の解説から始めてください。`;
+6. 冒頭の挨拶は一切不要です。いきなり診断結果の解説から始めてください。
+7. 「最大の課題」と「最初の一歩」は必ず## で始まる見出しとして出力してください。`;
 
   const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
   const options = {
@@ -417,6 +418,7 @@ function createPdfReport(scores, geminiComment) {
         }
     });
 
+    body.appendPageBreak();
     body.appendParagraph('次のステップのご案内').setAttributes(h2Style);
     body.appendParagraph('診断で明らかになった課題を解決するため、専門家があなたの会社に合わせた最適な解決策をご提案します。\n\n【Step1：情報収集から始めたい方へ】\n「明日からできる！情報セキュリティ対策 最初の10のステップ」の資料をご用意しています。ご希望の場合はお問い合わせください。\n\n【Step2：具体的に相談したい方へ】\n「IT課題の壁打ち 30分無料オンライン相談会」を毎月3社様限定で実施中です。以下の連絡先までお気軽にご連絡ください。\n連絡先: xxx-xxxx-xxxx / email: info@example.com');
     
