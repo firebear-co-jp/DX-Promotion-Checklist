@@ -330,45 +330,34 @@ function createPdfReport(scores, geminiComment) {
             
             // **太字** を太字に変換
             if (processedLine.includes('**')) {
-                // 正規表現で**で囲まれた部分を検出
+                // 正規表現で**で囲まれた部分を検出して置換
                 const regex = /\*\*(.*?)\*\*/g;
                 let match;
                 let lastIndex = 0;
-                let currentParagraph = null;
+                let paragraph = body.appendParagraph('');
                 
                 while ((match = regex.exec(processedLine)) !== null) {
                     // マッチ前の通常テキストを追加
                     if (match.index > lastIndex) {
                         const normalText = processedLine.substring(lastIndex, match.index);
                         if (normalText.trim() !== '') {
-                            if (!currentParagraph) {
-                                currentParagraph = body.appendParagraph(normalText);
-                                currentParagraph.setAttributes(normalStyle);
-                            } else {
-                                currentParagraph.appendText(normalText);
-                            }
+                            paragraph.appendText(normalText);
                         }
                     }
                     
-                    // 太字部分を別の段落として追加
+                    // 太字部分を追加
                     const boldText = match[1];
-                    const boldParagraph = body.appendParagraph(boldText);
-                    boldParagraph.setAttributes({...normalStyle, [DocumentApp.Attribute.BOLD]: true});
+                    const textElement = paragraph.appendText(boldText);
+                    textElement.setBold(true);
                     
                     lastIndex = match.index + match[0].length;
-                    currentParagraph = null; // 次の部分のためにリセット
                 }
                 
                 // 残りの通常テキストを追加
                 if (lastIndex < processedLine.length) {
                     const remainingText = processedLine.substring(lastIndex);
                     if (remainingText.trim() !== '') {
-                        if (!currentParagraph) {
-                            const remainingParagraph = body.appendParagraph(remainingText);
-                            remainingParagraph.setAttributes(normalStyle);
-                        } else {
-                            currentParagraph.appendText(remainingText);
-                        }
+                        paragraph.appendText(remainingText);
                     }
                 }
             } else {
