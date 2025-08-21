@@ -134,7 +134,7 @@ async function handleFormSubmit(e) {
     loading.classList.remove('hidden');
 
     // ここにGASのウェブアプリURLを設定
-            const GAS_URL = 'https://script.google.com/macros/s/AKfycbxaeTdC-5JDH5lCJ4Wi6GhjOYifJRNmabYD21zw2IfOWzZBwzRDGdu52rfhyIx7ZcK_8Q/exec';
+            const GAS_URL = 'https://script.google.com/macros/s/AKfycbz30ZYo7r6YAEuCkB7FxpQNsKUeaRm9-CzAhOUDTCB_WrUxfm8CU9NDzt0g7pWHf74xpw/exec';
 
     try {
         const response = await fetch(GAS_URL, {
