@@ -348,17 +348,13 @@ function createPdfReport(scores, geminiComment) {
                 listText = listText.replace(regex, '$1');
                 const listItem = body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.NUMBER);
                 // 太字部分を後から適用
-                const textElements = listItem.getText().split(regex);
-                if (textElements.length > 1) {
-                    // 太字部分を検出して適用
-                    const regex2 = /\*\*(.*?)\*\*/g;
-                    let match;
-                    while ((match = regex2.exec(trimmedLine.replace(/^\d+\.\s/, ''))) !== null) {
-                        const boldText = match[1];
-                        const textElement = listItem.findText(boldText);
-                        if (textElement) {
-                            textElement.setBold(true);
-                        }
+                const regex2 = /\*\*(.*?)\*\*/g;
+                let match;
+                while ((match = regex2.exec(trimmedLine.replace(/^\d+\.\s/, ''))) !== null) {
+                    const boldText = match[1];
+                    const textElement = listItem.findText(boldText);
+                    if (textElement) {
+                        textElement.setBold(true);
                     }
                 }
             } else {
