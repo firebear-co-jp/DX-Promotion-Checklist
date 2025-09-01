@@ -472,6 +472,9 @@ function createPdfReport(scores, geminiComment) {
         }
     });
     
+    // 改ページを挿入
+    body.appendPageBreak();
+    
     // 次のステップのご案内を追加
     body.appendParagraph('次のステップのご案内').setAttributes(h2Style);
     body.appendParagraph('診断で明らかになった課題を解決するため、専門家があなたの会社に合わせた最適な解決策をご提案します。\n\n【Step1：情報収集から始めたい方へ】\n「明日からできる！情報セキュリティ対策 最初の10のステップ」の資料をご用意しています。ご希望の場合はお問い合わせください。\n\n【Step2：具体的に相談したい方へ】\n「IT課題の壁打ち 30分無料オンライン相談会」を毎月3社様限定で実施中です。以下の連絡先までお気軽にご連絡ください。\n連絡先: xxx-xxxx-xxxx / email: info@example.com');
