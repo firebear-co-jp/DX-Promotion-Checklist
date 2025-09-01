@@ -144,16 +144,11 @@ function generateCommentWithGemini(scores) {
 - 点数が高い（4-5点）= 問題が多い = 改善が必要
 - 点数が低い（0-1点）= 問題が少ない = 良好な状態
 
-【最大の課題選定ロジック】（絶対に守ってください）：
-1. 必ず最高点のカテゴリを選んでください（点数が高いほど問題が多い）
-2. 最高点のカテゴリが複数ある場合のみ、以下の優先順位で1つ選択：
-   - 1位：セキュリティ・情報管理（最重要）
-   - 2位：経営・データ活用
-   - 3位：業務プロセス・効率化
-   - 4位：コミュニケーション・情報共有
-3. 絶対に低い点数のカテゴリは選ばないでください
-4. スコアが最優先、優先順位は同点時のみ使用
-5. 例：5点のカテゴリがあるのに4点のカテゴリを選んではいけません
+【カテゴリの重要度順位】（同点時の優先度）：
+1. セキュリティ・情報管理（最重要）
+2. 経営・データ活用
+3. 業務プロセス・効率化
+4. コミュニケーション・情報共有
 
 # 診断結果データ
 - 総合診断タイプ: ${resultType}
@@ -166,14 +161,35 @@ function generateCommentWithGemini(scores) {
 
 # 指示
 1. まず、総合診断タイプと総合スコアについて、その意味合いを解説してください。
-2. 次に、カテゴリ別スコアの中で、最も点数が高いカテゴリ（問題が多いカテゴリ）を「最大の課題」として特定し、そのカテゴリでどのような問題が起きている可能性が高いかを、具体例を交えて鋭く指摘してください。注意：点数が高いほど問題が多く、改善が必要です。点数が低い（0点や1点）は問題が少ないことを意味します。同じ点数のカテゴリがある場合は、優先順位に従い1つだけ選んでください：1位「セキュリティ・情報管理」→2位「経営・データ活用」→3位「業務プロセス・効率化」→4位「コミュニケーション・情報共有」。必ず最高点のカテゴリから選んでください。スコアが最優先で、優先順位は同点時のみ使用してください。絶対に低い点数のカテゴリを選んではいけません。
-3. 最後に、その最大の課題を解決するための「最初の一歩」として、具体的で実行可能なアクションを2〜3個提案してください。
-4. 全体を通して、専門用語は避け、中小企業の経営者に寄り添うような、丁寧かつ力強いトーンで記述してください。
-5. 出力はMarkdown形式で、見出しや箇条書きを効果的に使用してください。文字数は400〜600字程度にまとめてください。
-6. 冒頭の挨拶は一切不要です。いきなり診断結果の解説から始めてください。
-7. 「最大の課題」と「最初の一歩」は必ず## で始まる見出しとして出力してください。
-8. 「最初の一歩」は箇条書き（* または -）で「項目名：説明文」の形式で出力してください。項目名と説明文は「：」で区切ってください。
-9. 「最大の課題」セクションでは、問題点を箇条書き（* または -）で出力してください。`;
+
+2. 次に、すべてのカテゴリについて、得点順（高い順）かつ重要度順で分析してください：
+   - 各カテゴリの現状評価（点数が高いほど問題が多い）
+   - そのカテゴリで起きている可能性が高い問題点を2〜3個
+   - 改善のための具体的なアドバイスを1〜2個
+
+3. カテゴリの並び順は以下の通りにしてください：
+   - まず得点の高い順（5点→4点→3点→2点→1点→0点）
+   - 同点の場合は重要度順位に従う
+
+4. 各カテゴリは以下の形式で出力してください：
+   ## 【カテゴリ名】スコア：X/5点
+   ### 現状評価
+   （点数に応じた評価コメント）
+   
+   ### 主な問題点
+   * 問題点1
+   * 問題点2
+   * 問題点3
+   
+   ### 改善のアドバイス
+   * アドバイス1
+   * アドバイス2
+
+5. 全体を通して、専門用語は避け、中小企業の経営者に寄り添うような、丁寧かつ力強いトーンで記述してください。
+
+6. 出力はMarkdown形式で、見出しや箇条書きを効果的に使用してください。文字数は800〜1200字程度にまとめてください。
+
+7. 冒頭の挨拶は一切不要です。いきなり診断結果の解説から始めてください。`;
 
   const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
   const options = {
@@ -243,25 +259,73 @@ function generateDefaultComment(scores) {
     }
   });
 
-  return `診断結果の解説
+  // カテゴリを得点順・重要度順でソート
+  const sortedCategories = Object.keys(categories).sort((a, b) => {
+    if (categories[a].score !== categories[b].score) {
+      return categories[b].score - categories[a].score; // 得点の高い順
+    } else {
+      // 同点の場合は重要度順位でソート
+      const priority = {
+        'セキュリティ・情報管理': 1,
+        '経営・データ活用': 2,
+        '業務プロセス・効率化': 3,
+        'コミュニケーション・情報共有': 4
+      };
+      return priority[a] - priority[b];
+    }
+  });
+
+  let comment = `診断結果の解説
 
 総合診断タイプについて
 あなたの会社は「${resultType}」です。総合スコアは${totalScore}/20点で、${totalScore >= 10 ? '改善の余地が大きい' : totalScore >= 5 ? '部分的に改善が必要' : '良好な状態'}です。
 
-最大の課題
-最も改善が必要な分野は「${highestCategory}」です。この分野では以下のような問題が起きている可能性があります：
+`;
 
-* 業務効率の低下
-* 情報共有の不備
-* セキュリティリスク
-* データ活用の不足
+  // 各カテゴリについて分析コメントを生成
+  sortedCategories.forEach(category => {
+    const score = categories[category].score;
+    let evaluation, problems, advice;
+    
+    if (score >= 4) {
+      evaluation = '緊急の改善が必要な状態です';
+      problems = ['業務効率の大幅な低下', '情報管理の不備', 'セキュリティリスクの存在'];
+      advice = ['専門家への相談を検討', '段階的な改善計画の策定'];
+    } else if (score >= 2) {
+      evaluation = '改善の余地がある状態です';
+      problems = ['部分的な非効率性', '改善可能な点の存在'];
+      advice = ['現状分析の実施', '優先順位の明確化'];
+    } else {
+      evaluation = '良好な状態です';
+      problems = ['現状維持で問題なし', 'さらなる改善の余地'];
+      advice = ['ベストプラクティスの共有', '継続的な改善活動'];
+    }
+    
+    comment += `## 【${category}】スコア：${score}/5点
+### 現状評価
+${evaluation}
 
-最初の一歩として
-1. 現状の業務フローを見直す
-2. 必要なツールの導入を検討する
-3. 社員への研修を実施する
+### 主な問題点
+`;
+    
+    problems.forEach(problem => {
+      comment += `* ${problem}\n`;
+    });
+    
+    comment += `
+### 改善のアドバイス
+`;
+    
+    advice.forEach(adv => {
+      comment += `* ${adv}\n`;
+    });
+    
+    comment += '\n';
+  });
 
-詳細な改善提案については、専門家にご相談ください。`;
+  comment += `詳細な改善提案については、専門家にご相談ください。`;
+  
+  return comment;
 }
 
 /**
@@ -340,40 +404,10 @@ function createPdfReport(scores, geminiComment) {
     body.appendParagraph('ITコンサルタントによるAI分析コメント').setAttributes(h2Style);
     
     // Markdown記法を適切なGoogle Docs形式に変換
-    let numberedListCounter = 1; // 番号付きリストのカウンター
-    let isFirstPage = true;
-    let isSecondPage = false;
-    let firstPageContent = [];
-    let secondPageContent = [];
-    let thirdPageContent = [];
-    
+    // 新しい形式では全カテゴリの分析が含まれるため、ページ分割は行わない
     geminiComment.split('\n').forEach(line => {
         const trimmedLine = line.trim();
         
-        // 最大の課題と最初の一歩は2ページ目に移動
-        if (trimmedLine.startsWith('## 最大の課題') || trimmedLine.startsWith('## 最初の一歩')) {
-            isFirstPage = false;
-            isSecondPage = true;
-        }
-        
-        // 次のステップのご案内は3ページ目に移動
-        if (trimmedLine.includes('次のステップのご案内')) {
-            isSecondPage = false;
-        }
-        
-        if (isFirstPage) {
-            firstPageContent.push(line);
-        } else if (isSecondPage) {
-            secondPageContent.push(line);
-        } else {
-            thirdPageContent.push(line);
-        }
-    });
-    
-    // 1ページ目の内容を処理
-    firstPageContent.forEach(line => {
-        const trimmedLine = line.trim();
-        
         if (trimmedLine.startsWith('## ')) {
             // 見出し2
             body.appendParagraph(trimmedLine.substring(3)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
@@ -438,200 +472,9 @@ function createPdfReport(scores, geminiComment) {
         }
     });
     
-    // 改ページを挿入
-    body.appendPageBreak();
-    
-    // 2ページ目の内容を処理
-    let isInGreatestChallenge = false;
-    secondPageContent.forEach(line => {
-        const trimmedLine = line.trim();
-        
-        if (trimmedLine.startsWith('## 最大の課題')) {
-            // 最大の課題の見出し
-            body.appendParagraph(trimmedLine.substring(3)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
-            isInGreatestChallenge = true;
-        } else if (trimmedLine.startsWith('## 最初の一歩')) {
-            // 最初の一歩の見出し
-            body.appendParagraph(trimmedLine.substring(3)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
-            isInGreatestChallenge = false;
-        } else if (trimmedLine.startsWith('## ')) {
-            // その他の見出し2
-            body.appendParagraph(trimmedLine.substring(3)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
-        } else if (trimmedLine.startsWith('### ')) {
-            // 見出し3
-            body.appendParagraph(trimmedLine.substring(4)).setHeading(DocumentApp.ParagraphHeading.HEADING3);
-        } else if (trimmedLine.startsWith('# ')) {
-            // 見出し1
-            body.appendParagraph(trimmedLine.substring(2)).setHeading(DocumentApp.ParagraphHeading.HEADING1);
-        } else if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
-            // 箇条書き - Markdown強調記法を処理
-            let listText = trimmedLine.substring(2);
-            if (listText.includes('**')) {
-                // 箇条書き内の太字処理（記号のみ削除）
-                const regex = /\*\*(.*?)\*\*/g;
-                listText = listText.replace(regex, '$1');
-            }
-            body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.BULLET);
-        } else if (trimmedLine.match(/^\d+\.\s/)) {
-            // 番号付きリストを箇条書きに変更 - Markdown強調記法を処理
-            let listText = trimmedLine.replace(/^\d+\.\s/, '');
-            if (listText.includes('**')) {
-                // 箇条書き内の太字処理（記号のみ削除）
-                const regex = /\*\*(.*?)\*\*/g;
-                listText = listText.replace(regex, '$1');
-            }
-            
-            // 「：」で分割して項目名と説明文を分離
-            const parts = listText.split('：');
-            const itemName = parts[0];
-            const description = parts.slice(1).join('：'); // 複数の「：」がある場合に対応
-            
-            // 箇条書きとして追加
-            body.appendListItem(itemName).setGlyphType(DocumentApp.GlyphType.BULLET);
-            
-            // 説明文がある場合は改行して追加（段落下げ）
-            if (description && description.trim() !== '') {
-                const descriptionParagraph = body.appendParagraph(description);
-                descriptionParagraph.setAttributes(normalStyle);
-                // 段落下げを適用
-                descriptionParagraph.setIndentFirstLine(36); // 36ポイント（0.5インチ）の段落下げ
-            }
-        } else if (trimmedLine === '') {
-            // 空行
-            body.appendParagraph('');
-        } else {
-            // 通常のテキスト - Markdownの強調記法を処理
-            let processedLine = trimmedLine;
-            
-            // 最大の課題セクション内の通常テキストを箇条書きに変換
-            if (isInGreatestChallenge && processedLine.includes('**')) {
-                // 太字部分を箇条書きとして追加
-                const regex = /\*\*(.*?)\*\*/g;
-                let match;
-                while ((match = regex.exec(processedLine)) !== null) {
-                    const boldText = match[1];
-                    body.appendListItem(boldText).setGlyphType(DocumentApp.GlyphType.BULLET);
-                }
-            } else if (isInGreatestChallenge && processedLine.trim() !== '' && !processedLine.startsWith('##')) {
-                // 最大の課題セクション内の通常テキストも箇条書きとして追加
-                body.appendListItem(processedLine).setGlyphType(DocumentApp.GlyphType.BULLET);
-            } else {
-                // **太字** を太字に変換
-                if (processedLine.includes('**')) {
-                    // 正規表現で**で囲まれた部分を検出して置換
-                    const regex = /\*\*(.*?)\*\*/g;
-                    let match;
-                    let lastIndex = 0;
-                    let paragraph = body.appendParagraph('');
-                    
-                    while ((match = regex.exec(processedLine)) !== null) {
-                        // マッチ前の通常テキストを追加
-                        if (match.index > lastIndex) {
-                            const normalText = processedLine.substring(lastIndex, match.index);
-                            if (normalText.trim() !== '') {
-                                paragraph.appendText(normalText);
-                            }
-                        }
-                        
-                        // 太字部分を追加
-                        const boldText = match[1];
-                        const textElement = paragraph.appendText(boldText);
-                        textElement.setBold(true);
-                        
-                        lastIndex = match.index + match[0].length;
-                    }
-                    
-                    // 残りの通常テキストを追加
-                    if (lastIndex < processedLine.length) {
-                        const remainingText = processedLine.substring(lastIndex);
-                        if (remainingText.trim() !== '') {
-                            paragraph.appendText(remainingText);
-                        }
-                    }
-                } else {
-                    // 強調記法がない場合は通常のテキストとして追加
-                    body.appendParagraph(processedLine).setAttributes(normalStyle);
-                }
-            }
-        }
-    });
-    
-    // 改ページを挿入して3ページ目に移動
-    body.appendPageBreak();
-    
-    // 3ページ目の内容を処理
-    thirdPageContent.forEach(line => {
-        const trimmedLine = line.trim();
-        
-        if (trimmedLine.startsWith('## ')) {
-            // 見出し2
-            body.appendParagraph(trimmedLine.substring(3)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
-        } else if (trimmedLine.startsWith('### ')) {
-            // 見出し3
-            body.appendParagraph(trimmedLine.substring(4)).setHeading(DocumentApp.ParagraphHeading.HEADING3);
-        } else if (trimmedLine.startsWith('# ')) {
-            // 見出し1
-            body.appendParagraph(trimmedLine.substring(2)).setHeading(DocumentApp.ParagraphHeading.HEADING1);
-        } else if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
-            // 箇条書き - Markdown強調記法を処理
-            let listText = trimmedLine.substring(2);
-            if (listText.includes('**')) {
-                // 箇条書き内の太字処理（記号のみ削除）
-                const regex = /\*\*(.*?)\*\*/g;
-                listText = listText.replace(regex, '$1');
-            }
-            body.appendListItem(listText).setGlyphType(DocumentApp.GlyphType.BULLET);
-        } else if (trimmedLine === '') {
-            // 空行
-            body.appendParagraph('');
-        } else {
-            // 通常のテキスト - Markdownの強調記法を処理
-            let processedLine = trimmedLine;
-            
-            // **太字** を太字に変換
-            if (processedLine.includes('**')) {
-                // 正規表現で**で囲まれた部分を検出して置換
-                const regex = /\*\*(.*?)\*\*/g;
-                let match;
-                let lastIndex = 0;
-                let paragraph = body.appendParagraph('');
-                
-                while ((match = regex.exec(processedLine)) !== null) {
-                    // マッチ前の通常テキストを追加
-                    if (match.index > lastIndex) {
-                        const normalText = processedLine.substring(lastIndex, match.index);
-                        if (normalText.trim() !== '') {
-                            paragraph.appendText(normalText);
-                        }
-                    }
-                    
-                    // 太字部分を追加
-                    const boldText = match[1];
-                    const textElement = paragraph.appendText(boldText);
-                    textElement.setBold(true);
-                    
-                    lastIndex = match.index + match[0].length;
-                }
-                
-                // 残りの通常テキストを追加
-                if (lastIndex < processedLine.length) {
-                    const remainingText = processedLine.substring(lastIndex);
-                    if (remainingText.trim() !== '') {
-                        paragraph.appendText(remainingText);
-                    }
-                }
-            } else {
-                // 強調記法がない場合は通常のテキストとして追加
-                body.appendParagraph(processedLine).setAttributes(normalStyle);
-            }
-        }
-    });
-    
-    // 次のステップのご案内が3ページ目にない場合は追加
-    if (thirdPageContent.length === 0) {
-        body.appendParagraph('次のステップのご案内').setAttributes(h2Style);
-        body.appendParagraph('診断で明らかになった課題を解決するため、専門家があなたの会社に合わせた最適な解決策をご提案します。\n\n【Step1：情報収集から始めたい方へ】\n「明日からできる！情報セキュリティ対策 最初の10のステップ」の資料をご用意しています。ご希望の場合はお問い合わせください。\n\n【Step2：具体的に相談したい方へ】\n「IT課題の壁打ち 30分無料オンライン相談会」を毎月3社様限定で実施中です。以下の連絡先までお気軽にご連絡ください。\n連絡先: xxx-xxxx-xxxx / email: info@example.com');
-    }
+    // 次のステップのご案内を追加
+    body.appendParagraph('次のステップのご案内').setAttributes(h2Style);
+    body.appendParagraph('診断で明らかになった課題を解決するため、専門家があなたの会社に合わせた最適な解決策をご提案します。\n\n【Step1：情報収集から始めたい方へ】\n「明日からできる！情報セキュリティ対策 最初の10のステップ」の資料をご用意しています。ご希望の場合はお問い合わせください。\n\n【Step2：具体的に相談したい方へ】\n「IT課題の壁打ち 30分無料オンライン相談会」を毎月3社様限定で実施中です。以下の連絡先までお気軽にご連絡ください。\n連絡先: xxx-xxxx-xxxx / email: info@example.com');
     
     doc.saveAndClose();
     const pdfFile = DriveApp.getFileById(doc.getId()).getAs('application/pdf');
