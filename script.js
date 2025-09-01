@@ -41,6 +41,9 @@ const retryBtn = document.getElementById('retryBtn');
  * 設問を動的に生成する関数
  */
 function renderQuestions() {
+    // 既存の質問をクリア
+    questionsContainer.innerHTML = '';
+    
     let currentCategory = '';
     questions.forEach((q, index) => {
         if (q.category !== currentCategory) {
@@ -197,6 +200,9 @@ function startDiagnosis() {
     progressSection.classList.remove('hidden');
     renderQuestions();
     updateProgress();
+    
+    // ページの最上部にスクロール
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // イベントリスナーの設定
