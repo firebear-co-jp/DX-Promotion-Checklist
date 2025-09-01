@@ -35,6 +35,7 @@ const loading = document.getElementById('loading');
 const result = document.getElementById('result');
 const error = document.getElementById('error');
 const downloadLink = document.getElementById('downloadLink');
+const viewPdfBtn = document.getElementById('viewPdfBtn');
 const retryBtn = document.getElementById('retryBtn');
 
 /**
@@ -154,6 +155,8 @@ async function handleFormSubmit(e) {
 
         if (resultData.status === 'success') {
             downloadLink.href = resultData.pdfUrl;
+            // PDFを別タブで表示するボタンのイベントリスナーを設定
+            setupPdfViewButton(resultData.pdfUrl);
             loading.classList.add('hidden');
             result.classList.remove('hidden');
         } else {
@@ -174,6 +177,19 @@ async function handleFormSubmit(e) {
         if (err.stack) {
             console.error('Error stack:', err.stack);
         }
+    }
+}
+
+/**
+ * PDFを別タブで表示するボタンの設定
+ */
+function setupPdfViewButton(pdfUrl) {
+    const viewPdfBtn = document.getElementById('viewPdfBtn');
+    if (viewPdfBtn) {
+        viewPdfBtn.addEventListener('click', function() {
+            // 新しいタブでPDFを開く
+            window.open(pdfUrl, '_blank');
+        });
     }
 }
 
