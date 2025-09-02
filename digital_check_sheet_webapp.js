@@ -119,8 +119,8 @@ function calculateScores(answers) {
  * Gemini APIを使って診断コメントを生成する
  */
 function generateCommentWithGemini(scores) {
-  if (GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY' || !GEMINI_API_KEY) {
-    throw new Error("Gemini API Error: API key is not set in the script.");
+  if (!GEMINI_API_KEY) {
+    throw new Error("Gemini API Error: API key is not set in the script. Please set GEMINI_API_KEY in Script Properties.");
   }
 
   const { categories, totalScore } = scores;
