@@ -404,11 +404,18 @@ function createPdfReport(scores, geminiComment) {
     body.appendParagraph('ITコンサルタントによるAI分析コメント').setAttributes(h2Style);
     
     // Markdown記法を適切なGoogle Docs形式に変換
-    // 新しい形式では全カテゴリの分析が含まれるため、ページ分割は行わない
+    // 各カテゴリの前に改ページを挿入
+    let isFirstCategory = true;
     geminiComment.split('\n').forEach(line => {
         const trimmedLine = line.trim();
         
         if (trimmedLine.startsWith('## ')) {
+            // カテゴリ見出しの前に改ページを挿入（最初のカテゴリ以外）
+            if (!isFirstCategory) {
+                body.appendPageBreak();
+            }
+            isFirstCategory = false;
+            
             // 見出し2
             body.appendParagraph(trimmedLine.substring(3)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
         } else if (trimmedLine.startsWith('### ')) {
