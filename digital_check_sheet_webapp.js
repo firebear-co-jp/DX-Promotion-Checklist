@@ -12,11 +12,73 @@ const SHEET_NAME = '回答ログ';
  * GETリクエストを処理する関数（ウェブアプリの動作確認用）
  */
 function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({
-    status: 'success',
-    message: 'デジタル化推進度チェックシート API が正常に動作しています',
-    version: '1.0.0'
-  })).setMimeType(ContentService.MimeType.JSON);
+  // 既存の稼働確認レスポンスを維持
+  if (!e || !e.parameter || !e.parameter.action) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      message: 'デジタル化推進度チェックシート API が正常に動作しています',
+      version: '1.0.0'
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // スターターキットPDFのプレビューを表示するためのリダイレクトHTMLを返す
+  if (e.parameter.action === 'starter_kit') {
+    try {
+      // 直接PDFファイルIDを使用（最も安全な方法）
+      // このIDは「今日から始められる! 社内セキュリティ研修スターターキット.pdf」のファイルIDに置き換えてください
+      var pdfFileId = '1jsLK72MZXSNnkRFv9xKIPN_J47OhdwDn'; // ← ここに実際のPDFファイルIDを設定
+      
+      if (pdfFileId && pdfFileId !== 'YOUR_PDF_FILE_ID_HERE') {
+        // 実IDが設定されている場合は直接PDFを表示（ファイル直リンクのプレビューURL）
+        var previewUrl = 'https://drive.google.com/file/d/' + pdfFileId + '/preview';
+        var html = HtmlService.createHtmlOutput('<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=' + previewUrl + '"></head><body><p>PDFを表示しています…</p><script>location.replace("' + previewUrl + '");</script></body></html>');
+        html.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+        return html;
+      } else {
+        // ファイルIDが設定されていない場合は、フォルダ検索を試行
+        var folderId = '1jBmZ8fbcnk9gDv44bhqIxAF-4Pc0_lKr';
+        var targetName = '今日から始められる!  社内セキュリティ研修スターターキット.pdf';
+        
+        try {
+          var folder = DriveApp.getFolderById(folderId);
+          var files = folder.getFiles();
+          var fileId = null;
+          while (files.hasNext()) {
+            var f = files.next();
+            var name = f.getName();
+            if (name === targetName || name.indexOf('社内セキュリティ研修スターターキット') !== -1) {
+              fileId = f.getId();
+              break;
+            }
+          }
+          
+          if (fileId) {
+            pdfFileId = fileId;
+          }
+        } catch (folderError) {
+          Logger.log('Folder access error: ' + folderError.toString());
+        }
+      }
+      
+      // フォルダ検索後もファイルIDが取得できた場合
+      if (pdfFileId && pdfFileId !== 'YOUR_PDF_FILE_ID_HERE') {
+        // PDFファイルのプレビューURLを生成（ファイル直リンクのプレビューURL）
+        var previewUrl = 'https://drive.google.com/file/d/' + pdfFileId + '/preview';
+        var html = HtmlService.createHtmlOutput('<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=' + previewUrl + '"></head><body><p>PDFを表示しています…</p><script>location.replace("' + previewUrl + '");</script></body></html>');
+        html.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+        return html;
+      } else {
+        // ファイルが見つからない場合のエラーページ
+        return HtmlService.createHtmlOutput('<html><body><h2>PDFファイルが見つかりません</h2><p>管理者にお問い合わせください。</p></body></html>');
+      }
+    } catch (error) {
+      Logger.log('Starter kit error: ' + error.toString());
+      return HtmlService.createHtmlOutput('<html><body><h2>エラーが発生しました</h2><p>しばらく時間をおいて再度お試しください。</p></body></html>');
+    }
+  }
+
+  // 未定義action
+  return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Unknown action' })).setMimeType(ContentService.MimeType.JSON);
 }
 
 /**
@@ -47,7 +109,7 @@ function doPost(e) {
     
     // 3. Gemini APIで診断コメントを生成
     Logger.log('Step 3: Generating comment');
-    const geminiComment = generateCommentWithGemini(scores);
+    const geminiComment = generateCommentWithGemini(scores, answers);
     Logger.log('Comment generated successfully');
     
     // 4. PDFレポートを生成
@@ -136,7 +198,7 @@ function calculateScores(answers) {
 /**
  * Gemini APIを使って診断コメントを生成する
  */
-function generateCommentWithGemini(scores) {
+function generateCommentWithGemini(scores, answers) {
   if (!GEMINI_API_KEY) {
     throw new Error("Gemini API Error: API key is not set in the script. Please set GEMINI_API_KEY in Script Properties.");
   }
@@ -228,7 +290,33 @@ function generateCommentWithGemini(scores) {
 
 8. 各問題点やアドバイスは、中小企業が実際に取り組める具体的な内容にしてください。
 
-9. 可能な限り、数値や期間、具体的なツール名や手法名を含めて、実践的な内容にしてください。`;
+9. 可能な限り、数値や期間、具体的なツール名や手法名を含めて、実践的な内容にしてください。
+
+10. 最後に「設問別詳細分析」セクションを追加し、各設問（Q1〜Q20）に対して個別のコメントを提供してください。各設問について：
+    - 「はい」の回答の場合：問題点と改善アドバイスを提供
+    - 「いいえ」の回答の場合：褒めコメントとさらなる改善アドバイスを提供
+    - 各設問の回答状況：${JSON.stringify(answers)}
+    - 設問の内容は以下の通りです：
+      Q1: 社外や自宅からだと、社内にあるはずの必要なファイルにアクセスできない。
+      Q2: 社内の主要な連絡手段がメールや電話で、急ぎの要件が伝わりにくいことがある。
+      Q3: 会議のたびに大量の紙資料を印刷しており、ペーパーレス化が進んでいない。
+      Q4: 「あの件、どうなった？」と担当者に聞かないと、仕事の進捗がわからない。
+      Q5: 拠点間や部署間の情報共有がうまくいかず、何度も同じ説明をしている。
+      Q6: 見積書や稟議書など、いまだに「紙とハンコ」でのやり取りが必須となっている。
+      Q7: Excelへのデータ入力や、システム間の情報転記といった単純作業に時間を取られている。
+      Q8: 顧客情報や過去の取引履歴が、個々の営業担当者のExcelや手帳で管理されている。
+      Q9: 過去の資料やデータを探し出すのに、いつも5分以上かかっている。
+      Q10: 会社の売上や経費の状況を、複数の資料をかき集めないと把握できない。
+      Q11: 社員の私物のパソコンやスマホを、業務で使うことを黙認してしまっている。
+      Q12: 退職した社員のメールアドレスやアカウントが、そのまま放置されている可能性がある。
+      Q13: ウイルス対策ソフトは入れているが、それ以外のセキュリティ対策は特にしていない。
+      Q14: 重要なデータのバックアップを誰がいつ取っているか、明確なルールがない。
+      Q15: 社員がカフェの無料Wi-Fiなどを使い、重要なファイルをやり取りしている。
+      Q16: 重要な経営判断を、社長や役員の「経験と勘」に頼ることがほとんどだ。
+      Q17: Webサイトからの問い合わせや顧客データを、有効に活用できているとは言えない。
+      Q18: ITの導入を「コスト（費用）」と捉えており、「投資」とは考えにくい。
+      Q19: 社内にITに詳しい人材がおらず、パソコンのトラブルが起きると業務が止まる。
+      Q20: 新しいツールを導入しようとすると、社員から「面倒だ」という反対の声が上がる。`;
 
   const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
   const options = {
@@ -252,14 +340,14 @@ function generateCommentWithGemini(scores) {
   } else {
     Logger.log(`Gemini API Error: Failed with status code ${responseCode}. Response: ${responseBody}`);
     // Gemini APIが利用できない場合は、デフォルトのコメントを返す
-    return generateDefaultComment(scores);
+    return generateDefaultComment(scores, answers);
   }
 }
 
 /**
  * Gemini APIが利用できない場合のデフォルトコメントを生成する
  */
-function generateDefaultComment(scores) {
+function generateDefaultComment(scores, answers) {
   const { categories, totalScore } = scores;
   
   let resultType = '';
@@ -292,7 +380,7 @@ ${getDetailedOverallAnalysis(totalScore, resultType)}
   // 各カテゴリについて詳細な分析コメントを生成
   sortedCategories.forEach(category => {
     const score = categories[category].score;
-    const analysis = getCategoryAnalysis(category, score);
+    const analysis = getCategoryAnalysis(category, score, answers);
     
     comment += `## 【${category}】スコア：${score}/5点
 ### 現状評価
@@ -316,6 +404,15 @@ ${analysis.evaluation}
     comment += '\n';
   });
 
+  comment += `## 設問別詳細分析
+
+各設問に対する個別の分析とアドバイスを以下に示します。
+
+`;
+  
+  // 各設問の個別コメントを追加
+  comment += generateIndividualQuestionComments(answers);
+  
   comment += `## 次のステップについて
 
 診断で明らかになった課題を解決するため、段階的な改善計画を立てることをお勧めします。特にスコアの高い領域から優先的に取り組むことで、効果的なデジタル化推進が期待できます。
@@ -590,9 +687,212 @@ function getDetailedOverallAnalysis(totalScore, resultType) {
 }
 
 /**
+ * 各設問に対して個別にコメントを生成する
+ */
+function generateIndividualQuestionComments(answers) {
+  const questions = [
+    { category: 'コミュニケーション・情報共有', text: '社外や自宅からだと、社内にあるはずの必要なファイルにアクセスできない。' },
+    { category: 'コミュニケーション・情報共有', text: '社内の主要な連絡手段がメールや電話で、急ぎの要件が伝わりにくいことがある。' },
+    { category: 'コミュニケーション・情報共有', text: '会議のたびに大量の紙資料を印刷しており、ペーパーレス化が進んでいない。' },
+    { category: 'コミュニケーション・情報共有', text: '「あの件、どうなった？」と担当者に聞かないと、仕事の進捗がわからない。' },
+    { category: 'コミュニケーション・情報共有', text: '拠点間や部署間の情報共有がうまくいかず、何度も同じ説明をしている。' },
+    { category: '業務プロセス・効率化', text: '見積書や稟議書など、いまだに「紙とハンコ」でのやり取りが必須となっている。' },
+    { category: '業務プロセス・効率化', text: 'Excelへのデータ入力や、システム間の情報転記といった単純作業に時間を取られている。' },
+    { category: '業務プロセス・効率化', text: '顧客情報や過去の取引履歴が、個々の営業担当者のExcelや手帳で管理されている。' },
+    { category: '業務プロセス・効率化', text: '過去の資料やデータを探し出すのに、いつも5分以上かかっている。' },
+    { category: '業務プロセス・効率化', text: '会社の売上や経費の状況を、複数の資料をかき集めないと把握できない。' },
+    { category: 'セキュリティ・情報管理', text: '社員の私物のパソコンやスマホを、業務で使うことを黙認してしまっている。' },
+    { category: 'セキュリティ・情報管理', text: '退職した社員のメールアドレスやアカウントが、そのまま放置されている可能性がある。' },
+    { category: 'セキュリティ・情報管理', text: 'ウイルス対策ソフトは入れているが、それ以外のセキュリティ対策は特にしていない。' },
+    { category: 'セキュリティ・情報管理', text: '重要なデータのバックアップを誰がいつ取っているか、明確なルールがない。' },
+    { category: 'セキュリティ・情報管理', text: '社員がカフェの無料Wi-Fiなどを使い、重要なファイルをやり取りしている。' },
+    { category: '経営・データ活用', text: '重要な経営判断を、社長や役員の「経験と勘」に頼ることがほとんどだ。' },
+    { category: '経営・データ活用', text: 'Webサイトからの問い合わせや顧客データを、有効に活用できているとは言えない。' },
+    { category: '経営・データ活用', text: 'ITの導入を「コスト（費用）」と捉えており、「投資」とは考えにくい。' },
+    { category: '経営・データ活用', text: '社内にITに詳しい人材がおらず、パソコンのトラブルが起きると業務が止まる。' },
+    { category: '経営・データ活用', text: '新しいツールを導入しようとすると、社員から「面倒だ」という反対の声が上がる。' }
+  ];
+
+  let individualComments = '';
+  
+  questions.forEach((question, index) => {
+    const answer = answers[index];
+    const isYes = answer === 'yes';
+    
+    individualComments += `\n### Q${index + 1}: ${question.text}\n`;
+    
+    if (isYes) {
+      // 「はい」の場合：問題点とアドバイス
+      individualComments += `**回答**: はい（問題あり）\n\n`;
+      individualComments += `**問題点**: ${getProblemDescription(question.category, index)}\n\n`;
+      individualComments += `**改善アドバイス**: ${getImprovementAdvice(question.category, index)}\n\n`;
+    } else {
+      // 「いいえ」の場合：褒めコメントとさらなる改善のアドバイス
+      individualComments += `**回答**: いいえ（問題なし）\n\n`;
+      individualComments += `**評価**: ${getPraiseComment(question.category, index)}\n\n`;
+      individualComments += `**さらなる改善アドバイス**: ${getFurtherImprovementAdvice(question.category, index)}\n\n`;
+    }
+  });
+  
+  return individualComments;
+}
+
+/**
+ * 問題点の説明を取得
+ */
+function getProblemDescription(category, questionIndex) {
+  const problemDescriptions = {
+    'コミュニケーション・情報共有': [
+      'リモートワーク環境での情報アクセスが制限されており、業務効率の低下と柔軟性の欠如が発生しています。',
+      '緊急時の情報伝達が非効率的で、意思決定の遅延や機会損失が発生する可能性があります。',
+      '紙資料の印刷によるコスト増加と環境負荷の増大が発生しています。',
+      '進捗管理の可視化が不十分で、プロジェクト管理の非効率性が発生しています。',
+      '部門間の情報共有が不十分で、重複作業や情報の遅延が頻発しています。'
+    ],
+    '業務プロセス・効率化': [
+      '紙ベースの承認プロセスにより、処理時間の延長とコスト増加が発生しています。',
+      '手作業による人的ミスと作業時間の増大が発生し、生産性が低下しています。',
+      '顧客情報の分散管理により、データの重複や不整合が発生する可能性があります。',
+      '情報検索の非効率性により、業務時間の浪費とストレスの増大が発生しています。',
+      '経営情報の統合が不十分で、意思決定の遅延と非効率性が発生しています。'
+    ],
+    'セキュリティ・情報管理': [
+      '私物端末の使用により、セキュリティリスクの増大と情報漏洩の可能性が高まっています。',
+      '退職者のアカウント管理不備により、不正アクセスのリスクが存在します。',
+      '基本的なセキュリティ対策の不足により、サイバー攻撃の被害を受ける可能性が高い状態です。',
+      'データバックアップの不備により、システム障害時のデータ損失リスクが存在します。',
+      '不適切なネットワーク環境での作業により、情報漏洩のリスクが高まっています。'
+    ],
+    '経営・データ活用': [
+      '感覚的な経営判断により、機会損失や非効率な意思決定が発生する可能性があります。',
+      '顧客データの活用不足により、マーケティング効果の低下と機会損失が発生しています。',
+      'IT投資の認識不足により、競争力の低下と効率性の悪化が発生しています。',
+      'IT人材の不足により、システム障害時の業務停止リスクが存在します。',
+      'デジタル変革への抵抗により、競争力の低下と効率性の悪化が発生しています。'
+    ]
+  };
+  
+  return problemDescriptions[category][questionIndex % 5];
+}
+
+/**
+ * 改善アドバイスを取得
+ */
+function getImprovementAdvice(category, questionIndex) {
+  const improvementAdvice = {
+    'コミュニケーション・情報共有': [
+      'クラウドストレージ（Google Drive、OneDrive等）の導入により、リモートアクセス環境を構築してください。',
+      'Slack、Microsoft Teams等のコミュニケーションツールを導入し、リアルタイム情報共有を実現してください。',
+      'デジタル化された会議資料の活用により、ペーパーレス化を推進してください。',
+      'プロジェクト管理ツール（Trello、Asana等）の導入により、進捗の可視化を実現してください。',
+      '社内ポータルサイトの構築により、情報の一元管理と共有を促進してください。'
+    ],
+    '業務プロセス・効率化': [
+      '電子承認システムの導入により、ペーパーレス化と処理時間の短縮を実現してください。',
+      'RPAツールの導入により、定型業務の自動化と効率化を図ってください。',
+      'CRMシステムの導入により、顧客情報の一元管理と活用を促進してください。',
+      '文書管理システムの導入により、情報検索の効率化を実現してください。',
+      'BIツールの導入により、経営情報の統合と可視化を実現してください。'
+    ],
+    'セキュリティ・情報管理': [
+      'BYODポリシーの策定とMDM（モバイルデバイス管理）の導入により、セキュリティを強化してください。',
+      'アカウント管理システムの導入により、退職者のアカウント無効化を自動化してください。',
+      '多層防御セキュリティの導入により、包括的なセキュリティ対策を構築してください。',
+      '自動バックアップシステムの導入により、データ保護体制を確立してください。',
+      'VPNの導入により、安全なリモートアクセス環境を構築してください。'
+    ],
+    '経営・データ活用': [
+      'BIツールの導入により、データドリブンな経営判断を実現してください。',
+      'マーケティングオートメーションツールの導入により、顧客データの活用を促進してください。',
+      'IT投資のROI分析により、投資効果を可視化し、適切な投資判断を行ってください。',
+      'IT人材の育成または外部専門家の活用により、IT体制を強化してください。',
+      'デジタル変革の教育と推進により、組織全体のデジタル化を促進してください。'
+    ]
+  };
+  
+  return improvementAdvice[category][questionIndex % 5];
+}
+
+/**
+ * 褒めコメントを取得
+ */
+function getPraiseComment(category, questionIndex) {
+  const praiseComments = {
+    'コミュニケーション・情報共有': [
+      'リモートワーク環境が適切に構築されており、柔軟な働き方が実現されています。',
+      '効率的な情報伝達体制が構築されており、迅速な意思決定が可能な状態です。',
+      'ペーパーレス化が適切に推進されており、環境に配慮した業務運営が実現されています。',
+      '進捗管理が適切に実施されており、プロジェクトの可視化が良好な状態です。',
+      '部門間の情報共有が適切に実施されており、効率的な連携が実現されています。'
+    ],
+    '業務プロセス・効率化': [
+      'デジタル化された承認プロセスが適切に運用されており、効率的な業務運営が実現されています。',
+      '自動化された業務プロセスが適切に運用されており、高い生産性が維持されています。',
+      '顧客情報の統合管理が適切に実施されており、データの一元化が良好な状態です。',
+      '効率的な情報検索システムが構築されており、迅速な情報アクセスが可能な状態です。',
+      '経営情報の統合が適切に実施されており、データドリブンな経営が実現されています。'
+    ],
+    'セキュリティ・情報管理': [
+      '適切なデバイス管理が実施されており、セキュリティリスクが最小化されています。',
+      'アカウント管理が適切に実施されており、不正アクセスのリスクが最小化されています。',
+      '包括的なセキュリティ対策が実施されており、高いセキュリティレベルが維持されています。',
+      '適切なデータバックアップ体制が構築されており、データ保護が良好な状態です。',
+      '安全なネットワーク環境が構築されており、情報漏洩リスクが最小化されています。'
+    ],
+    '経営・データ活用': [
+      'データドリブンな経営判断が適切に実施されており、科学的な意思決定が実現されています。',
+      '顧客データの活用が適切に実施されており、効果的なマーケティングが実現されています。',
+      'IT投資の適切な認識により、競争力の向上と効率性の改善が実現されています。',
+      '適切なIT体制が構築されており、システムの安定運用が実現されています。',
+      'デジタル変革が適切に推進されており、組織全体のデジタル化が良好な状態です。'
+    ]
+  };
+  
+  return praiseComments[category][questionIndex % 5];
+}
+
+/**
+ * さらなる改善アドバイスを取得
+ */
+function getFurtherImprovementAdvice(category, questionIndex) {
+  const furtherImprovementAdvice = {
+    'コミュニケーション・情報共有': [
+      'AIを活用した高度なリモートワーク環境の構築により、さらなる効率化を図ってください。',
+      'AIチャットボットの導入により、24時間対応の情報提供体制を構築してください。',
+      'AIを活用した会議効率化により、さらなる時間短縮を実現してください。',
+      'AIを活用した進捗予測により、プロジェクト管理の精度向上を図ってください。',
+      'AIを活用した情報推薦システムにより、さらなる情報共有の効率化を図ってください。'
+    ],
+    '業務プロセス・効率化': [
+      'AIを活用した高度な自動化により、さらなる効率化を実現してください。',
+      'AIを活用した業務最適化により、さらなる生産性向上を図ってください。',
+      'AIを活用した顧客分析により、さらなる顧客価値の向上を図ってください。',
+      'AIを活用した情報検索により、さらなる検索効率の向上を図ってください。',
+      'AIを活用した経営予測により、さらなる経営精度の向上を図ってください。'
+    ],
+    'セキュリティ・情報管理': [
+      'AIを活用した高度なセキュリティ監視により、さらなるセキュリティ強化を図ってください。',
+      'AIを活用した異常検知により、さらなるセキュリティリスクの軽減を図ってください。',
+      'AIを活用した脅威分析により、さらなるセキュリティ対策の高度化を図ってください。',
+      'AIを活用したデータ保護により、さらなるデータセキュリティの強化を図ってください。',
+      'AIを活用したネットワーク監視により、さらなるセキュリティ監視の高度化を図ってください。'
+    ],
+    '経営・データ活用': [
+      'AIを活用した高度な経営分析により、さらなる経営精度の向上を図ってください。',
+      'AIを活用した顧客予測により、さらなるマーケティング効果の向上を図ってください。',
+      'AIを活用した投資最適化により、さらなる投資効果の向上を図ってください。',
+      'AIを活用したIT最適化により、さらなるIT効率の向上を図ってください。',
+      'AIを活用した組織変革により、さらなるデジタル変革の推進を図ってください。'
+    ]
+  };
+  
+  return furtherImprovementAdvice[category][questionIndex % 5];
+}
+
+/**
  * カテゴリ別の詳細分析を取得
  */
-function getCategoryAnalysis(category, score) {
+function getCategoryAnalysis(category, score, answers) {
   const analysisData = {
     'セキュリティ・情報管理': {
       5: {
@@ -632,16 +932,21 @@ function getCategoryAnalysis(category, score) {
         ],
         advice: [
           { title: 'セキュリティポリシーの策定', description: '全社的なセキュリティポリシーを策定し、従業員への周知徹底を図ってください。' },
-          { title: '定期的なセキュリティ監査', description: '定期的なセキュリティ監査を実施し、対策の効果を評価・改善してください。' }
+          { title: '定期的なセキュリティ監査', description: '定期的なセキュリティ監査を実施し、対策の効果を評価・改善してください。' },
+          { title: '権限の棚卸し', description: '全アカウントの権限を棚卸しし、不要権限の削除とロール設計の見直しを行ってください。' }
         ]
       },
       2: {
         evaluation: '良好な状態ですが、さらなる改善の余地があります。',
         problems: [
-          { title: '高度なセキュリティ対策の不足', description: '基本的なセキュリティ対策は整っているものの、より高度な対策の導入により、さらなる安全性の向上が期待できます。' }
+          { title: '高度なセキュリティ対策の不足', description: '基本的なセキュリティ対策は整っているものの、より高度な対策の導入により、さらなる安全性の向上が期待できます。' },
+          { title: 'BCPの不備', description: '災害や長期障害時の事業継続計画が具体化されていません。' },
+          { title: '教育の継続性', description: 'セキュリティ教育がスポット対応で、継続性と測定が不足しています。' }
         ],
         advice: [
-          { title: '高度なセキュリティ対策の検討', description: '多要素認証、暗号化、侵入検知システムなど、より高度なセキュリティ対策の導入を検討してください。' }
+          { title: '高度なセキュリティ対策の検討', description: '多要素認証、暗号化、侵入検知システムなど、より高度なセキュリティ対策の導入を検討してください。' },
+          { title: 'BCP/DRの整備', description: '目標復旧時間(RTO)・目標復旧時点(RPO)を定め、訓練を年2回以上実施してください。' },
+          { title: '教育プログラムの年次計画化', description: 'eラーニングと模擬フィッシング訓練を組み合わせ、理解度を定量評価してください。' }
         ]
       },
       1: {
@@ -690,32 +995,42 @@ function getCategoryAnalysis(category, score) {
         ]
       },
       4: {
-        evaluation: '改善が必要な状態です。データ活用による経営判断の基盤が不十分です。',
+        evaluation: '改善が必要な状態です。セキュリティリスクが高く、早急な対策が求められます。',
         problems: [
-          { title: 'データ活用の不足', description: '収集されたデータが経営判断に十分活用されておらず、データの価値が発揮されていません。' },
-          { title: '分析体制の不備', description: 'データを分析し、経営に活用する体制が不十分で、効果的な意思決定ができていません。' }
+          { title: 'セキュリティ対策の不備', description: '基本的なセキュリティ対策が不十分で、情報漏洩やサイバー攻撃のリスクが高い状態です。' },
+          { title: 'データ管理の課題', description: '重要なデータの管理方法が不適切で、データ損失や不正アクセスのリスクがあります。' },
+          { title: '監査と可視化の不足', description: 'ログ監査やアラート体制が弱く、インシデントの早期検知が困難です。' }
         ],
         advice: [
-          { title: 'データ分析ツールの導入', description: 'Excel以外の分析ツールを導入し、より高度なデータ分析を実施してください。' },
-          { title: '定期的な経営会議の実施', description: 'データに基づく定期的な経営会議を実施し、データドリブンな意思決定を習慣化してください。' }
+          { title: 'セキュリティ対策の強化', description: 'ウイルス対策ソフトの導入、ファイアウォールの設定、定期的なセキュリティ更新の実施など、基本的なセキュリティ対策を強化してください。' },
+          { title: 'データバックアップの確立', description: '重要なデータの定期的なバックアップを確立し、復旧手順を明確化してください。' },
+          { title: 'ログ監査とアラート導入', description: 'アクセスログの集中管理と、重要イベントの即時通知を仕組み化してください。' }
         ]
       },
       3: {
-        evaluation: '部分的に改善が必要な状態です。基本的なデータ活用は行われていますが、さらなる強化が推奨されます。',
+        evaluation: '部分的に改善が必要な状態です。基本的なセキュリティ対策はある程度整っていますが、さらなる強化が推奨されます。',
         problems: [
-          { title: 'データ活用の限界', description: '基本的なデータ活用は行われているものの、より高度な分析や予測に活用できていません。' }
+          { title: 'セキュリティ対策の不統一', description: '一部のセキュリティ対策は実施されているものの、全社的に統一された対策が不足している状況です。' },
+          { title: '継続的な監視の不足', description: 'セキュリティ状況の継続的な監視や評価が不十分で、新たな脅威への対応が遅れる可能性があります。' },
+          { title: '権限設計の曖昧さ', description: '最小権限の原則が徹底されず、過剰権限アカウントが存在します。' }
         ],
         advice: [
-          { title: '高度な分析手法の導入', description: '統計分析や機械学習を活用した、より高度なデータ分析手法の導入を検討してください。' }
+          { title: 'セキュリティポリシーの策定', description: '全社的なセキュリティポリシーを策定し、従業員への周知徹底を図ってください。' },
+          { title: '定期的なセキュリティ監査', description: '定期的なセキュリティ監査を実施し、対策の効果を評価・改善してください。' },
+          { title: '権限の棚卸し', description: '全アカウントの権限を棚卸しし、不要権限の削除とロール設計の見直しを行ってください。' }
         ]
       },
       2: {
         evaluation: '良好な状態ですが、さらなる改善の余地があります。',
         problems: [
-          { title: '高度なデータ活用の不足', description: '基本的なデータ活用は行われているものの、より高度な活用により、さらなる経営効率化が期待できます。' }
+          { title: '高度なセキュリティ対策の不足', description: '基本的なセキュリティ対策は整っているものの、より高度な対策の導入により、さらなる安全性の向上が期待できます。' },
+          { title: 'BCPの不備', description: '災害や長期障害時の事業継続計画が具体化されていません。' },
+          { title: '教育の継続性', description: 'セキュリティ教育がスポット対応で、継続性と測定が不足しています。' }
         ],
         advice: [
-          { title: '高度なデータ分析の導入', description: '予測分析や機械学習を活用した、より高度なデータ分析の導入を検討してください。' }
+          { title: '高度なセキュリティ対策の検討', description: '多要素認証、暗号化、侵入検知システムなど、より高度なセキュリティ対策の導入を検討してください。' },
+          { title: 'BCP/DRの整備', description: '目標復旧時間(RTO)・目標復旧時点(RPO)を定め、訓練を年2回以上実施してください。' },
+          { title: '教育プログラムの年次計画化', description: 'eラーニングと模擬フィッシング訓練を組み合わせ、理解度を定量評価してください。' }
         ]
       },
       1: {
@@ -764,32 +1079,42 @@ function getCategoryAnalysis(category, score) {
         ]
       },
       4: {
-        evaluation: '改善が必要な状態です。業務プロセスの非効率性が存在します。',
+        evaluation: '改善が必要な状態です。コミュニケーション・情報共有の非効率性が存在します。',
         problems: [
-          { title: '手作業の多さ', description: '多くの業務が手作業に依存しており、効率化の余地が大きい状態です。' },
-          { title: 'プロセス標準化の不足', description: '業務プロセスが標準化されておらず、効率性にばらつきがあります。' }
+          { title: '情報共有の不足', description: '重要な情報が適切に共有されておらず、意思決定に支障をきたしています。' },
+          { title: 'コミュニケーションツールの不備', description: '効果的なコミュニケーションツールが不足しており、情報伝達が非効率的です。' },
+          { title: 'ナレッジの分散', description: '業務ノウハウが個人や部門に散在しており、再現性と引き継ぎ効率が低下しています。' }
         ],
         advice: [
-          { title: '業務プロセスの標準化', description: '主要な業務プロセスを標準化し、効率性と品質の向上を図ってください。' },
-          { title: 'デジタルツールの活用', description: '適切なデジタルツールを導入し、業務効率化を図ってください。' }
+          { title: 'コミュニケーションツールの導入', description: '適切なコミュニケーションツールを導入し、情報共有の効率化を図ってください。' },
+          { title: '情報共有ルールの策定', description: '情報共有のルールを策定し、全社的な情報共有体制を構築してください。' },
+          { title: 'ナレッジ基盤の整備', description: '社内Wikiやポータルで手順・議事録・設計資料を体系化し、検索性を高めてください。' }
         ]
       },
       3: {
-        evaluation: '部分的に改善が必要な状態です。基本的な効率化は行われていますが、さらなる改善が推奨されます。',
+        evaluation: '部分的に改善が必要な状態です。基本的なコミュニケーションは行われていますが、さらなる改善が推奨されます。',
         problems: [
-          { title: '高度な効率化の不足', description: '基本的な効率化は行われているものの、より高度な効率化により、さらなる生産性向上が期待できます。' }
+          { title: '高度なコミュニケーション手法の不足', description: '基本的なコミュニケーションは行われているものの、より高度な手法により、さらなる効率化が期待できます。' },
+          { title: '会議情報の非構造化', description: '議事録や決定事項がバラバラに保存され、追跡や再利用が難しい状態です。' },
+          { title: '進捗の可視化不足', description: '案件やタスクの状況が関係者に共有されず、フォロー漏れや遅延が発生しやすいです。' }
         ],
         advice: [
-          { title: '高度な効率化手法の導入', description: 'AIや機械学習を活用した、より高度な業務効率化手法の導入を検討してください。' }
+          { title: '高度なコミュニケーション手法の導入', description: 'ビデオ会議、チャット、プロジェクト管理ツールなどを活用した、より高度なコミュニケーション手法の導入を検討してください。' },
+          { title: '議事録テンプレートの統一', description: '決定事項・ToDo・期限・責任者を必ず残すテンプレートを用意し、全会議で徹底してください。' },
+          { title: 'ダッシュボード整備', description: '案件進捗・問い合わせ対応状況などをボードで可視化し、朝会で確認する運用を導入してください。' }
         ]
       },
       2: {
         evaluation: '良好な状態ですが、さらなる改善の余地があります。',
         problems: [
-          { title: '高度な効率化の余地', description: '基本的な効率化は行われているものの、より高度な効率化により、さらなる生産性向上が期待できます。' }
+          { title: '高度なコミュニケーションの余地', description: '基本的なコミュニケーションは行われているものの、より高度な手法により、さらなる効率化が期待できます。' },
+          { title: '情報検索性の課題', description: '必要情報が複数場所に分散し、検索に時間がかかるケースがあります。' },
+          { title: '属人化の兆候', description: '一部業務の問い合わせ窓口が個人に集中し、対応が滞留するリスクがあります。' }
         ],
         advice: [
-          { title: '高度な効率化の検討', description: '最新の効率化手法を調査し、適用可能なものを導入してください。' }
+          { title: '高度なコミュニケーションの検討', description: '最新のコミュニケーションツールを調査し、適用可能なものを導入してください。' },
+          { title: 'タグと命名規則の導入', description: 'ファイル/チャンネル命名規則・タグ付けを統一し、検索性を向上させてください。' },
+          { title: '問い合わせ運用の整備', description: '共通のヘルプデスク/フォームで受付→チケット化→対応の流れを標準化してください。' }
         ]
       },
       1: {
@@ -860,10 +1185,14 @@ function getCategoryAnalysis(category, score) {
       2: {
         evaluation: '良好な状態ですが、さらなる改善の余地があります。',
         problems: [
-          { title: '高度なコミュニケーションの余地', description: '基本的なコミュニケーションは行われているものの、より高度な手法により、さらなる効率化が期待できます。' }
+          { title: '高度なコミュニケーションの余地', description: '基本的なコミュニケーションは行われているものの、より高度な手法により、さらなる効率化が期待できます。' },
+          { title: '情報検索性の課題', description: '必要情報が複数場所に分散し、検索に時間がかかるケースがあります。' },
+          { title: '属人化の兆候', description: '一部業務の問い合わせ窓口が個人に集中し、対応が滞留するリスクがあります。' }
         ],
         advice: [
-          { title: '高度なコミュニケーションの検討', description: '最新のコミュニケーションツールを調査し、適用可能なものを導入してください。' }
+          { title: '高度なコミュニケーションの検討', description: '最新のコミュニケーションツールを調査し、適用可能なものを導入してください。' },
+          { title: 'タグと命名規則の導入', description: 'ファイル/チャンネル命名規則・タグ付けを統一し、検索性を向上させてください。' },
+          { title: '問い合わせ運用の整備', description: '共通のヘルプデスク/フォームで受付→チケット化→対応の流れを標準化してください。' }
         ]
       },
       1: {
@@ -895,7 +1224,73 @@ function getCategoryAnalysis(category, score) {
     }
   };
 
-  return analysisData[category][score] || analysisData[category][0];
+  // 回答に基づく動的生成（answers優先）
+  const categoryToRange = {
+    'コミュニケーション・情報共有': [0, 4],
+    '業務プロセス・効率化': [5, 9],
+    'セキュリティ・情報管理': [10, 14],
+    '経営・データ活用': [15, 19]
+  };
+
+  const template = analysisData[category][score];
+  const dynamicProblems = [];
+  const dynamicAdvice = [];
+
+  if (answers && Array.isArray(answers)) {
+    const [startIdx, endIdx] = categoryToRange[category] || [0, -1];
+    for (let i = startIdx; i <= endIdx; i++) {
+      const a = answers[i];
+      if (!a) continue;
+      if (a === 'yes') {
+        // 問題がある → 問題点と改善策を追加
+        dynamicProblems.push({
+          title: `Q${i + 1}の課題`,
+          description: getProblemDescription(category, i)
+        });
+        dynamicAdvice.push({
+          title: `Q${i + 1}の改善`,
+          description: getImprovementAdvice(category, i)
+        });
+      } else if (a === 'no') {
+        // 良好 → アドバイス欄に更なる一歩を追加（褒め＋更なる改善）
+        dynamicAdvice.push({
+          title: `Q${i + 1}は良好`,
+          description: `${getPraiseComment(category, i)} さらに、${getFurtherImprovementAdvice(category, i)}`
+        });
+      }
+    }
+  }
+
+  // 3件以上になるようテンプレで補完（重複を避けながら）
+  const problems = [];
+  const advice = [];
+
+  const pushUnique = (arr, item) => {
+    const key = item.title + '|' + item.description;
+    if (!arr.some(x => x.title + '|' + x.description === key)) arr.push(item);
+  };
+
+  dynamicProblems.forEach(p => pushUnique(problems, p));
+  template.problems.forEach(p => {
+    if (problems.length < 5) pushUnique(problems, p);
+  });
+  while (problems.length < 3 && template.problems.length > 0) {
+    pushUnique(problems, template.problems[problems.length % template.problems.length]);
+  }
+
+  dynamicAdvice.forEach(a => pushUnique(advice, a));
+  template.advice.forEach(a => {
+    if (advice.length < 5) pushUnique(advice, a);
+  });
+  while (advice.length < 3 && template.advice.length > 0) {
+    pushUnique(advice, template.advice[advice.length % template.advice.length]);
+  }
+
+  return {
+    evaluation: template.evaluation,
+    problems,
+    advice
+  };
 }
 
 /**
