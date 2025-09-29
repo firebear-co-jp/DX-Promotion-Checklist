@@ -1,7 +1,7 @@
 // DX推進度チェックシート - メインスクリプト
 
 // ここにGASのウェブアプリURLを設定（全体で共通利用）
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbylVbVpVLTFbgAsfCCMBZQh_VoA6I8YG8VBnR9BI5wirLwJsOY7YjtQXx2ZLoB8owLYTQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw-L4RC62NfAruYeEiaD_hzOinmOgEN80qzKcw8icMDRSU-2YjQ8y38Fb_kowzN7o0ijg/exec';
 
 const questions = [
     { category: 'コミュニケーション・情報共有', text: '社外や自宅からだと、社内にあるはずの必要なファイルにアクセスできない。' },
