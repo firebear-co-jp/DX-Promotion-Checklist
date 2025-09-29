@@ -1,5 +1,8 @@
 // DX推進度チェックシート - メインスクリプト
 
+// ここにGASのウェブアプリURLを設定（全体で共通利用）
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzJkPBRnKd_AnZnhWMGjA7ziqlc1x56jMGQmgqukRa_Vrdj9esX2iNOxdR6MLpZbc8yCQ/exec';
+
 const questions = [
     { category: 'コミュニケーション・情報共有', text: '社外や自宅からだと、社内にあるはずの必要なファイルにアクセスできない。' },
     { category: 'コミュニケーション・情報共有', text: '社内の主要な連絡手段がメールや電話で、急ぎの要件が伝わりにくいことがある。' },
@@ -136,9 +139,6 @@ async function handleFormSubmit(e) {
 
     checkSheetForm.classList.add('hidden');
     loading.classList.remove('hidden');
-
-            // ここにGASのウェブアプリURLを設定
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxn73X7TMg6AxoVIiV3hlt-kicT9sJQsbbabjYsWW2mQyVuyr-ngXj-uvCLU9YNIzAuNw/exec';
 
     try {
         const response = await fetch(GAS_URL, {
