@@ -2,6 +2,8 @@
 
 // ここにGASのウェブアプリURLを設定（全体で共通利用）
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbw3hmxFxM_gDAhhF2S8cuov1cCuMVRK_mKpT8Lgf8v7gmkoBt_QoOGDLZ9omCDNoIRVUA/exec';
+// スターターキットPDFのファイルID（直接プレビュー用）
+const STARTER_KIT_FILE_ID = '1jsLK72MZXSNnkRFv9xKIPN_J47OhdwDn';
 
 const questions = [
     { category: 'コミュニケーション・情報共有', text: '社外や自宅からだと、社内にあるはずの必要なファイルにアクセスできない。' },
@@ -211,14 +213,12 @@ document.addEventListener('DOMContentLoaded', function() {
     startBtn.addEventListener('click', startDiagnosis);
     checkSheetForm.addEventListener('submit', handleFormSubmit);
     retryBtn.addEventListener('click', handleRetry);
-    // スターターキットダウンロード
+    // スターターキットダウンロード（フロントから直接PDFプレビューを開く）
     if (starterKitBtn) {
         starterKitBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            const url = new URL(GAS_URL);
-            // そのままクエリを付与して新規タブで開く
-            const previewUrl = `${url.origin}${url.pathname}?action=starter_kit`;
-            window.open(previewUrl, '_blank');
+            const directPreviewUrl = `https://drive.google.com/file/d/${STARTER_KIT_FILE_ID}/preview`;
+            window.open(directPreviewUrl, '_blank');
         });
     }
 });
