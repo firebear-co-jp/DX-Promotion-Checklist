@@ -683,26 +683,32 @@ function createPdfReport(scores, geminiComment) {
     body.appendParagraph(`総合スコア ${totalScore}/20点: ${totalEvaluation}`).setAttributes(normalStyle);
     body.appendParagraph('\n');
     
-    // 改ページを挿入
-    body.appendPageBreak();
-    
     body.appendParagraph('ITコンサルタントによるAI分析コメント').setAttributes(h2Style);
     
     // Markdown記法を適切なGoogle Docs形式に変換
     // 各カテゴリの前に改ページを挿入
+    // 文末の重複表現（例: "です。です。"）を簡易的に正規化
+    const normalizedComment = geminiComment
+        .replace(/(です。)\s*です。/g, '$1')
+        .replace(/(ます。)\s*ます。/g, '$1');
+
     let isFirstCategory = true;
-    geminiComment.split('\n').forEach(line => {
+    normalizedComment.split('\n').forEach(line => {
         const trimmedLine = line.trim();
         
         if (trimmedLine.startsWith('## ')) {
-            // カテゴリ見出しの前に改ページを挿入（最初のカテゴリ以外）
-            if (!isFirstCategory) {
+            // 「総合診断結果について」の直前で改ページする
+            const h2Text = trimmedLine.substring(3);
+            if (h2Text.indexOf('総合診断結果について') === 0) {
+                body.appendPageBreak();
+            } else if (!isFirstCategory) {
+                // 以降のカテゴリは見出し前で改ページ
                 body.appendPageBreak();
             }
             isFirstCategory = false;
             
             // 見出し2
-            body.appendParagraph(trimmedLine.substring(3)).setHeading(DocumentApp.ParagraphHeading.HEADING2);
+            body.appendParagraph(h2Text).setHeading(DocumentApp.ParagraphHeading.HEADING2);
         } else if (trimmedLine.startsWith('### ')) {
             // 見出し3
             body.appendParagraph(trimmedLine.substring(4)).setHeading(DocumentApp.ParagraphHeading.HEADING3);
