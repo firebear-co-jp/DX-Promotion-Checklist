@@ -1,7 +1,7 @@
 // DX推進度チェックシート - メインスクリプト
 
 // ここにGASのウェブアプリURLを設定（全体で共通利用）
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbw3hmxFxM_gDAhhF2S8cuov1cCuMVRK_mKpT8Lgf8v7gmkoBt_QoOGDLZ9omCDNoIRVUA/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycby8p5XhZKu00FGk3691RDJFA4x52DTw_LUPhvoP6hxXurH6zRCMD3Eb0kitNHlhHr4ENg/exec';
 // スターターキットPDFのファイルID（直接プレビュー用）
 const STARTER_KIT_FILE_ID = '1jsLK72MZXSNnkRFv9xKIPN_J47OhdwDn';
 
