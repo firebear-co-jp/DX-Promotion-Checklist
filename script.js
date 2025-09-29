@@ -36,6 +36,7 @@ const result = document.getElementById('result');
 const error = document.getElementById('error');
 const downloadLink = document.getElementById('downloadLink');
 const retryBtn = document.getElementById('retryBtn');
+const starterKitBtn = document.getElementById('starterKitBtn');
 
 /**
  * 設問を動的に生成する関数
@@ -137,7 +138,7 @@ async function handleFormSubmit(e) {
     loading.classList.remove('hidden');
 
             // ここにGASのウェブアプリURLを設定
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxOCEvW0dmsd_exgFgWerGZRtynBiFKZYr0TLIG5teEHhp3u2xUuAH5idkJ5rfeNLSNlQ/exec';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyrRJXif4e8UFkFAvJUXGIGyD_RUjTf5QwDqOME9ZgYc2LI-QNlbjkKd7rPxFdapuz3zw/exec';
 
     try {
         const response = await fetch(GAS_URL, {
@@ -210,4 +211,14 @@ document.addEventListener('DOMContentLoaded', function() {
     startBtn.addEventListener('click', startDiagnosis);
     checkSheetForm.addEventListener('submit', handleFormSubmit);
     retryBtn.addEventListener('click', handleRetry);
+    // スターターキットダウンロード
+    if (starterKitBtn) {
+        starterKitBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const url = new URL(GAS_URL);
+            // そのままクエリを付与して新規タブで開く
+            const previewUrl = `${url.origin}${url.pathname}?action=starter_kit`;
+            window.open(previewUrl, '_blank');
+        });
+    }
 });
